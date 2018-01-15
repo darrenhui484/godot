@@ -33,75 +33,104 @@
 
 #include "reference.h"
 
+typedef uint32_t vid; // vertex ID
+typedef uint32_t eid; // edge ID
+typedef HashMap<StringName, Variant, StringNameHasher> MetaMap;
+
 class DataGraphVertex : public Object {
 	GDCLASS(DataGraphVertex, Object);
 
-	friend DataGraph;
+	friend class DataGraph;
 
 private:
-	Set<String> labels;
-	Variant metadata;
+	vid _id;
+	List<StringName> _labels;
+	Dictionary _meta;
 
 protected:
 	static void _bind_methods();
 
 public:
-	DataGraphVertex() {}
+	DataGraphVertex(vid p_vid) : _id(p_vid) {}
 	~DataGraphVertex() {}
 
-	void get_label_list(List<String> *p_list) const;
-	PoolStringArray get_labels() const;
-	void add_label(const String &p_label) { labels.insert(p_label); }
-	void remove_label(const String &p_label) { labels.erase(p_label); }
-	bool has_label(const String &p_label) { return labels.has(p_label); }
-	void clear_labels() { labels.clear(); }
+	vid get_id() { return _id; }
 
-	const Variant &get_metadata() const { return metadata; }
-	void set_metadata(const Variant &p_metadata = Variant()) { metadata = p_metadata; }
+	void get_label_list(List<StringName> *p_list) const;
+	PoolStringArray get_labels() const;
+	void add_label(const StringName &p_label);
+	void remove_label(const StringName &p_label);
+	bool has_label(const StringName &p_label);
+	void clear_labels();
+
+	Dictionary get_meta() const;
+	void set_meta(Dictionary p_meta);
 };
 
 class DataGraphEdge : public Object {
 	GDCLASS(DataGraphEdge, Object);
 
-	friend DataGraph;
+	friend class DataGraph;
 
 private:
-	uint32_t start;
-	uint32_t end;
-	String label;
-	Variant metadata;
-	DataGraph *graph;
+	eid _id;
+	vid _start;
+	vid _end;
+	StringName _label;
+	Dictionary _meta;
+	DataGraph *_graph;
 
 protected:
 	static void _bind_methods();
 
 public:
-	DataGraphEdge(uint32_t p_start, uint32_t p_end, const String &p_label, const Variant &p_metadata);
+	DataGraphEdge(eid p_eid, vid p_start, vid p_end, const StringName &p_label, Dictionary p_meta);
 	~DataGraphEdge();
 
-	uint32_t get_start() const { return start; }
-	uint32_t get_end() const { return end; }
+	eid get_id() const { return _id; }
+	vid get_start() const { return _start; }
+	vid get_end() const { return _end; }
 	const DataGraphVertex *get_start_vertex() const;
 	const DataGraphVertex *get_end_vertex() const;
-	const String &get_label() const { return label; }
-	void set_metadata(const Variant &p_metadata = Variant()) { metadata = p_metadata; }
-	const Variant &get_metadata() const { return metadata; }
+	const StringName &get_label() const { return _label; }
+
+	Dictionary get_meta() const;
+	void set_meta(Dictionary p_meta);
 };
 
-struct DataGraphImplementationList;
-struct DataGraphImplementationMatrix;
-
-class DataGraph : public Reference, public DataGraphInterface {
+class DataGraph : public Reference {
 	GDCLASS(DataGraph, Reference);
 
 private:
 
-	friend DataGraphEdge;
+	struct VertexCluster {
+		DataGraphVertex vertex;
+		List<DataGraphEdge*> in_edges;
+		List<DataGraphEdge*> out_edges;
 
-	union DataImpl {
-		DataGraphImplementationList list;
-		DataGraphImplementationMatrix matrix;
-	} _data;
+		VertexCluster(vid p_vid, List<StringName> *p_labels, Dictionary p_meta)
+			: vertex(p_vid) {
+
+			for (List<StringName>::Element *E = p_labels->front(); E; E = E->next()) {
+				vertex.add_label(E->get());
+			}
+
+			vertex.set_meta(p_meta);
+		}
+	};
+
+	Vector<VertexCluster> _vertices;
+	Vector<DataGraphEdge> _edges;
+
+	Vector<vid> _free_vids;
+	Vector<eid> _free_eids;
+
+	HashMap<StringName, List<DataGraphVertex*>, StringNameHasher> _vertex_map;
+	HashMap<StringName, List<DataGraphEdge*>, StringNameHasher> _edge_map;
+
+	bool _directed;
+
+	VertexCluster *get_cluster(vid p_vid);
 
 protected:
 	static void _bind_methods();
@@ -110,10 +139,42 @@ public:
 	DataGraph();
 	~DataGraph();
 
-	enum class Mode { GRAPH_ADJACENCY_LIST = 0, GRAPH_ADJACENCY_MATRIX = 1 };
+	DataGraphVertex *get_vertex(vid p_vid);
+	void get_vertex_list(List<DataGraphVertex*> *p_vertices);
+	Array get_vertices();
+	void add_vertex(List<StringName> *p_labels, Dictionary p_meta);
+	void add_vertex_array(Array p_labels, Dictionary p_meta);
+	void remove_vertex(vid p_vid);
+	size_t get_num_vertices();
+	bool has_vertex(vid p_vid);
 
-	void set_mode(Mode p_mode);
-	Mode get_mode();
+	DataGraphEdge *get_edge(vid p_start, vid p_end);
+	DataGraphEdge *get_edge_id(eid p_eid);
+	void get_edge_list(List<DataGraphEdge*> *p_edges);
+	Array get_edges();
+	Error add_edge(vid p_start, vid p_end, const StringName &p_label, Dictionary p_meta);
+	Error remove_edge(eid p_eid);
+	size_t get_num_edges();
+	bool has_edge(eid p_eid);
+
+	void get_edges_to_vertex(vid p_vid, List<DataGraphEdge*> *p_edges);
+	Array get_edges_to_vertex_array(vid p_vid);
+	void get_edges_from_vertex(vid p_vid, List<DataGraphEdge*> *p_edges);
+	Array get_edges_from_vertex_array(vid p_vid);
+
+	// void
+
+	void get_vertices_with_label_list(const StringName &p_label, List<DataGraphVertex*> *p_vertices);
+	Array get_vertices_with_label_array(const StringName &p_label);
+	void get_edges_with_label_list(const StringName &p_label, List<DataGraphEdge*> *p_edges);
+	Array get_edges_with_label_array(const StringName &p_label);
+
+	void get_vertex_label_list(List<StringName> *p_labels);
+	Array get_vertex_label_array();
+	void get_edge_label_list(List<StringName> *p_labels);
+	Array get_edge_label_array();
+
+	void clear();
 };
 
 #endif // DATA_GRAPH_H
