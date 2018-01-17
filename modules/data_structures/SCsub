@@ -1,0 +1,20 @@
+# SCsub
+Import('env')
+
+env.add_source_files(env.modules_sources, "*.cpp")
+env.add_source_files(env.modules_sources, "data_graph/*.cpp")
+
+#sources = [
+#	"register_types.cpp",
+#	"data_graph/data_graph.cpp"
+#]
+
+#module_env = env.Clone()
+#module_env.Append(CXXFLAGS='/LDd')
+#module_env['LIBS'] = []
+
+#shared_lib = module_env.SharedLibrary(target='#bin/data_structures', source=sources)
+
+#shared_lib_shim = shared_lib[0].name.rsplit('.', 1)[0]
+#env.Append(LIBS=[shared_lib_shim])
+#env.Append(LIBPATH=['#bin'])
