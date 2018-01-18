@@ -4,8 +4,8 @@
 
 void register_data_structures_types() {
 	ClassDB::register_class<DataGraphVertex>();
-	//ClassDB::register_class<DataGraphEdge>();
-	//ClassDB::register_class<DataGraph>();
+	ClassDB::register_class<DataGraphEdge>();
+	ClassDB::register_class<DataGraph>();
 }
 
 void unregister_data_structures_types() {

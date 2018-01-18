@@ -132,16 +132,6 @@ bool DataGraphVertex::operator==(DataGraphVertex &p_other) {
 	return *this < p_other && p_other < *this;
 }
 
-const DataGraphVertex *DataGraphEdge::get_start_vertex() const {
-	ERR_FAIL_COND_V(!_graph, NULL);
-	return _graph->get_vertex(_start);
-}
-
-const DataGraphVertex *DataGraphEdge::get_end_vertex() const {
-	ERR_FAIL_COND_V(!_graph, NULL);
-	return _graph->get_vertex(_end);
-}
-
 Dictionary DataGraphEdge::get_metadata() const {
 	return _metadata;
 }
@@ -152,16 +142,16 @@ void DataGraphEdge::set_metadata(Dictionary p_metadata) {
 
 void DataGraphEdge::_bind_methods() {
 
-	//ClassDB::bind_method(D_METHOD("get_start"), &DataGraphEdge::get_start_vertex);
-	//ClassDB::bind_method(D_METHOD("get_end"), &DataGraphEdge::get_end_vertex);
-	//ClassDB::bind_method(D_METHOD("get_label"), &DataGraphEdge::get_label);
-	//ClassDB::bind_method(D_METHOD("set_metadata", "p_metadata_dict"), &DataGraphEdge::set_metadata);
-	//ClassDB::bind_method(D_METHOD("get_metadata"), &DataGraphEdge::get_metadata);
+	ClassDB::bind_method(D_METHOD("get_start"), &DataGraphEdge::get_start);
+	ClassDB::bind_method(D_METHOD("get_end"), &DataGraphEdge::get_end);
+	ClassDB::bind_method(D_METHOD("get_label"), &DataGraphEdge::get_label_str);
+	ClassDB::bind_method(D_METHOD("set_metadata", "p_metadata_dict"), &DataGraphEdge::set_metadata);
+	ClassDB::bind_method(D_METHOD("get_metadata"), &DataGraphEdge::get_metadata);
 
-	//ADD_PROPERTY(PropertyInfo(Variant::NIL, "metadata"), "set_metadata", "get_metadata");
+	ADD_PROPERTY(PropertyInfo(Variant::NIL, "metadata"), "set_metadata", "get_metadata");
 }
 
-DataGraphEdge::DataGraphEdge(eid p_eid, vid p_start, vid p_end, const StringName &p_label, Dictionary p_metadata)
+DataGraphEdge::DataGraphEdge(eid p_eid, DataGraphVertex *p_start, DataGraphVertex *p_end, const StringName &p_label, Dictionary p_metadata)
 	: _id(p_eid), _start(p_start), _end(p_end), _label(p_label), _metadata(p_metadata) {}
 
 DataGraphEdge::DataGraphEdge(const DataGraphEdge &p_other) {
@@ -210,7 +200,7 @@ bool DataGraph::VertexCluster::operator==(DataGraph::VertexCluster &p_other) {
 DataGraphVertex *DataGraph::get_vertex(vid p_vid) {
 	VertexCluster *cluster = (VertexCluster*) _vertices[p_vid].operator uint64_t();
 	if (cluster) {
-		return cluster->get_vertex();
+		return Object::cast_to<DataGraphVertex>(cluster->get_vertex());
 	}
 	return NULL;
 }
@@ -245,7 +235,7 @@ Array DataGraph::get_vertices() {
 DataGraphVertex *DataGraph::add_vertex(List<StringName> *p_labels, Dictionary p_metadata) {
 	VertexCluster *cluster = memnew(VertexCluster(_vertices.size(), p_labels, p_metadata));
 	_vertices[_vertices.size()] = cluster;
-	return cluster->get_vertex();
+	return Object::cast_to<DataGraphVertex>(cluster->get_vertex());
 }
 
 DataGraphVertex *DataGraph::add_vertex_array(Array p_labels, Dictionary p_metadata) {
@@ -282,18 +272,18 @@ bool DataGraph::has_vertex(vid p_vid) {
 	return _vertices.has(p_vid);
 }
 
-DataGraphEdge *DataGraph::get_edge(vid p_start, vid p_end) {
-	DataGraph::VertexCluster *cluster = get_vertex_cluster(p_start);
+DataGraphEdge *DataGraph::get_edge(DataGraphVertex *p_start, DataGraphVertex *p_end) {
+	DataGraph::VertexCluster *cluster = get_vertex_cluster(p_start->get_id());
 	for (List<DataGraphEdge*>::Element *E = cluster->get_out_edges().front(); E; E = E->next()) {
 		if (E->get()->get_end() == p_end) {
-			return E->get();
+			return Object::cast_to<DataGraphEdge>(E->get());
 		}
 	}
 	return NULL;
 }
 
 DataGraphEdge *DataGraph::get_edge_id(eid p_eid) {
-	return get_edge_id(p_eid);
+	return Object::cast_to<DataGraphEdge>(get_edge_id(p_eid));
 }
 
 void DataGraph::get_edge_list(List<DataGraphEdge*> *p_edges) {
@@ -312,18 +302,21 @@ Array DataGraph::get_edges() {
 	return ret;
 }
 
-eid DataGraph::add_edge(vid p_start, vid p_end, const StringName &p_label, Dictionary p_metadata) {
-	if (!_vertices.has(p_start)) {
-		WARN_PRINT(("Failed to locate non-existent vertex in DataGraph: " + itos(p_start)).utf8().ptr());
-		return -1;
+DataGraphEdge *DataGraph::add_edge(DataGraphVertex *p_start, DataGraphVertex *p_end, const StringName &p_label, Dictionary p_metadata) {
+	ERR_FAIL_COND_V(!p_start, NULL);
+	ERR_FAIL_COND_V(!p_end, NULL);
+	if (!_vertices.has(p_start->get_id())) {
+		WARN_PRINT(("Failed to locate non-existent vertex in DataGraph: " + itos(p_start->get_id())).utf8().ptr());
+		return NULL;
 	}
-	if (!_vertices.has(p_end)) {
-		WARN_PRINT(("Failed to locate non-existent vertex in DataGraph: " + itos(p_end)).utf8().ptr());
-		return -1;
+	if (!_vertices.has(p_end->get_id())) {
+		WARN_PRINT(("Failed to locate non-existent vertex in DataGraph: " + itos(p_end->get_id())).utf8().ptr());
+		return NULL;
 	}
 
 	DataGraphEdge *edge = memnew(DataGraphEdge(_edges.size(), p_start, p_end, p_label, p_metadata));
 	_edges[_edges.size()] = edge;
+	return Object::cast_to<DataGraphEdge>(edge);
 }
 
 Error DataGraph::remove_edge(eid p_eid) {
@@ -459,20 +452,20 @@ void DataGraph::clear() {
 
 void DataGraph::_bind_methods() {
 
-	//ClassDB::bind_method(D_METHOD("get_vertex", "p_vertex_id"), &DataGraph::get_vertex);
-	//ClassDB::bind_method(D_METHOD("get_vertices"), &DataGraph::get_vertices);
-	//ClassDB::bind_method(D_METHOD("add_vertex", "p_labels", "p_metadata"), &DataGraph::add_vertex_array);
-	//ClassDB::bind_method(D_METHOD("remove_vertex", "p_vertex_id"), &DataGraph::remove_vertex);
-	//ClassDB::bind_method(D_METHOD("get_num_vertices"), &DataGraph::get_num_vertices);
-	//ClassDB::bind_method(D_METHOD("has_vertex", "p_vertex_id"), &DataGraph::has_vertex);
+	ClassDB::bind_method(D_METHOD("get_vertex", "p_vertex_id"), &DataGraph::get_vertex);
+	ClassDB::bind_method(D_METHOD("get_vertices"), &DataGraph::get_vertices);
+	ClassDB::bind_method(D_METHOD("add_vertex", "p_labels", "p_metadata"), &DataGraph::add_vertex_array);
+	ClassDB::bind_method(D_METHOD("remove_vertex", "p_vertex_id"), &DataGraph::remove_vertex);
+	ClassDB::bind_method(D_METHOD("get_num_vertices"), &DataGraph::get_num_vertices);
+	ClassDB::bind_method(D_METHOD("has_vertex", "p_vertex_id"), &DataGraph::has_vertex);
 
 	//ClassDB::bind_method(D_METHOD("get_edge", "p_vertex_start", "p_vertex_end"), &DataGraph::get_edge);
-	//ClassDB::bind_method(D_METHOD("get_edge_id", "p_edge_id"), &DataGraph::get_edge_id);
-	//ClassDB::bind_method(D_METHOD("get_edges"), &DataGraph::get_edges);
+	ClassDB::bind_method(D_METHOD("get_edge_id", "p_edge_id"), &DataGraph::get_edge_id);
+	ClassDB::bind_method(D_METHOD("get_edges"), &DataGraph::get_edges);
 	//ClassDB::bind_method(D_METHOD("add_edge", "p_vertex_start", "p_vertex_end", "p_label", "p_metadatadata"), &DataGraph::add_edge);
-	//ClassDB::bind_method(D_METHOD("remove_edge", "p_edge_id"), &DataGraph::remove_edge);
-	//ClassDB::bind_method(D_METHOD("get_num_edges"), &DataGraph::get_num_edges);
-	//ClassDB::bind_method(D_METHOD("has_edge", "p_edge_id"), &DataGraph::has_edge);
+	ClassDB::bind_method(D_METHOD("remove_edge", "p_edge_id"), &DataGraph::remove_edge);
+	ClassDB::bind_method(D_METHOD("get_num_edges"), &DataGraph::get_num_edges);
+	ClassDB::bind_method(D_METHOD("has_edge", "p_edge_id"), &DataGraph::has_edge);
 
 }
 
