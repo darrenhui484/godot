@@ -54,6 +54,11 @@ private:
 protected:
 	static void _bind_methods();
 
+	//bind helpers
+	bool _matches(Object *p_vertex) {
+		return matches(Object::cast_to<DataGraphVertex>(p_vertex));
+	}
+
 public:
 	DataGraphVertex(vid p_vid = -1, DataGraph *p_graph = NULL) : _id(p_vid), _graph(p_graph) {}
 	DataGraphVertex(const DataGraphVertex &p_other);
@@ -79,6 +84,8 @@ public:
 
 	Array get_in_edges_array();
 	Array get_out_edges_array();
+
+	bool matches(DataGraphVertex *p_vertex);
 };
 
 class DataGraphEdge : public Object {
@@ -97,8 +104,14 @@ private:
 protected:
 	static void _bind_methods();
 
+	//bind helpers
+	bool _matches(Object *p_edge) {
+		return matches(Object::cast_to<DataGraphEdge>(p_edge));
+	}
+
 public:
-	DataGraphEdge(eid p_eid = -1, DataGraphVertex *p_start = NULL, DataGraphVertex *p_end = NULL, const StringName &p_label = "", Dictionary p_metadata = Dictionary());
+	DataGraphEdge(eid p_eid = -1, DataGraphVertex *p_start = NULL, DataGraphVertex *p_end = NULL, const StringName &p_label = StringName(), Dictionary p_metadata = Dictionary())
+		: _id(p_eid), _start(p_start), _end(p_end), _label(p_label), _metadata(p_metadata) {}
 	DataGraphEdge(const DataGraphEdge &p_other);
 	~DataGraphEdge() {}
 
@@ -113,6 +126,8 @@ public:
 
 	Dictionary get_metadata() const;
 	void set_metadata(Dictionary p_metadata);
+
+	bool matches(DataGraphEdge *p_edge);
 };
 
 class DataGraph : public Reference {
@@ -122,9 +137,9 @@ private:
 
 	class VertexCluster {
 
-		DataGraphVertex vertex;
-		List<DataGraphEdge*> in_edges;
-		List<DataGraphEdge*> out_edges;
+		DataGraphVertex _vertex;
+		List<DataGraphEdge*> _in_edges;
+		List<DataGraphEdge*> _out_edges;
 
 	public:
 		VertexCluster(vid p_vid = -1, List<StringName> *p_labels = NULL, Dictionary p_metadata = Dictionary());
@@ -134,9 +149,11 @@ private:
 		bool operator<(VertexCluster &p_other);
 		bool operator==(VertexCluster &p_other);
 
-		DataGraphVertex *get_vertex() { return &vertex; }
-		List<DataGraphEdge*> &get_in_edges() { return in_edges; }
-		List<DataGraphEdge*> &get_out_edges() { return out_edges; }
+		DataGraphVertex *get_vertex() { return &_vertex; }
+		List<DataGraphEdge*> &get_in_edges() { return _in_edges; }
+		List<DataGraphEdge*> &get_out_edges() { return _out_edges; }
+
+		bool matches(VertexCluster *p_cluster);
 	};
 
 	Dictionary _vertices; //vid mapped to a VertexCluster
@@ -149,6 +166,21 @@ private:
 
 protected:
 	static void _bind_methods();
+
+	// bind helpers
+	DataGraphEdge *_get_edge(Object *p_start = NULL, Object *p_end = NULL) {
+		return get_edge(Object::cast_to<DataGraphVertex>(p_start), Object::cast_to<DataGraphVertex>(p_end));
+	}
+	DataGraphEdge *_add_edge(Object *p_start = NULL, Object *p_end = NULL, const StringName &p_label = StringName(), Dictionary p_metadata = Dictionary()) {
+		return add_edge(Object::cast_to<DataGraphVertex>(p_start), Object::cast_to<DataGraphVertex>(p_end), p_label, p_metadata);
+	}
+	Array _get_vertices_with_labels(const List<StringName> &p_labels);
+	Array _get_edges_with_label(const StringName &p_label);
+	Array _get_labeled_vertices();
+	Array _get_labeled_edges();
+	void _remove_vertex_ptr(Object *p_vertex);
+	Error _remove_edge_ptr(Object *p_edge);
+	Dictionary _get_matching(Object *p_graph);
 
 public:
 	DataGraph() {}
@@ -165,6 +197,7 @@ public:
 	DataGraphVertex *add_vertex(List<StringName> *p_labels, Dictionary p_metadata);
 	DataGraphVertex *add_vertex_array(Array p_labels, Dictionary p_metadata);
 	void remove_vertex(vid p_vid);
+	void remove_vertex_ptr(DataGraphVertex *p_vertex);
 	size_t get_num_vertices();
 	bool has_vertex(vid p_vid);
 
@@ -174,27 +207,21 @@ public:
 	Array get_edges();
 	DataGraphEdge *add_edge(DataGraphVertex *p_start, DataGraphVertex *p_end, const StringName &p_label, Dictionary p_metadata);
 	Error remove_edge(eid p_eid);
+	Error remove_edge_ptr(DataGraphEdge *p_edge);
 	size_t get_num_edges();
 	bool has_edge(eid p_eid);
-
-	void get_edges_to_vertex(vid p_vid, List<DataGraphEdge*> *p_edges);
-	Array get_edges_to_vertex_array(vid p_vid);
-	void get_edges_from_vertex(vid p_vid, List<DataGraphEdge*> *p_edges);
-	Array get_edges_from_vertex_array(vid p_vid);
+	Dictionary get_matching(DataGraph *p_graph);
 
 	// void
 
-	void get_vertices_with_label_list(const StringName &p_label, List<DataGraphVertex*> *p_vertices);
-	Array get_vertices_with_label_array(const StringName &p_label);
-	void get_edges_with_label_list(const StringName &p_label, List<DataGraphEdge*> *p_edges);
-	Array get_edges_with_label_array(const StringName &p_label);
+	void get_vertices_with_labels(const List<StringName> &p_labels, List<DataGraphVertex*> *p_vertices);
+	void get_edges_with_label(const StringName &p_label, List<DataGraphEdge*> *p_edges);
 
-	void get_vertex_label_list(List<StringName> *p_labels);
-	Array get_vertex_label_array();
-	void get_edge_label_list(List<StringName> *p_labels);
-	Array get_edge_label_array();
+	void get_labeled_vertices(List<StringName> *p_labels);
+	void get_labeled_edges(List<StringName> *p_labels);
 
 	void clear();
+	bool matches(DataGraph *p_graph);
 };
 
 #endif // DATA_GRAPH_H
