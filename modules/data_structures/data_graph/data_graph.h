@@ -130,6 +130,28 @@ public:
 	bool matches(DataGraphEdge *p_edge);
 };
 
+class DataGraphPath : public Reference {
+	GDCLASS(DataGraphPath, Reference);
+
+private:
+
+	List<DataGraphVertex*> _vertices;
+	List<DataGraphEdge*> _edges;
+
+protected:
+	static void _bind_methods();
+
+public:
+
+	DataGraphPath();
+	~DataGraphPath() {}
+
+	bool operator<(DataGraphPath &p_other);
+	bool operator==(DataGraphPath &p_other);
+
+	void clear();
+};
+
 class DataGraph : public Reference {
 	GDCLASS(DataGraph, Reference);
 
@@ -178,9 +200,9 @@ protected:
 	Array _get_edges_with_label(const StringName &p_label);
 	Array _get_labeled_vertices();
 	Array _get_labeled_edges();
-	void _remove_vertex_ptr(Object *p_vertex);
-	Error _remove_edge_ptr(Object *p_edge);
-	Dictionary _get_matching(Object *p_graph);
+	void _remove_vertex(Object *p_vertex);
+	Error _remove_edge(Object *p_edge);
+	//Dictionary _get_matching(Object *p_graph);
 
 public:
 	DataGraph() {}
@@ -196,8 +218,8 @@ public:
 	Array get_vertices();
 	DataGraphVertex *add_vertex(List<StringName> *p_labels, Dictionary p_metadata);
 	DataGraphVertex *add_vertex_array(Array p_labels, Dictionary p_metadata);
-	void remove_vertex(vid p_vid);
-	void remove_vertex_ptr(DataGraphVertex *p_vertex);
+	void remove_vertex_id(vid p_vid);
+	void remove_vertex(DataGraphVertex *p_vertex);
 	size_t get_num_vertices();
 	bool has_vertex(vid p_vid);
 
@@ -206,11 +228,11 @@ public:
 	void get_edge_list(List<DataGraphEdge*> *p_edges);
 	Array get_edges();
 	DataGraphEdge *add_edge(DataGraphVertex *p_start, DataGraphVertex *p_end, const StringName &p_label, Dictionary p_metadata);
-	Error remove_edge(eid p_eid);
-	Error remove_edge_ptr(DataGraphEdge *p_edge);
+	Error remove_edge_id(eid p_eid);
+	Error remove_edge(DataGraphEdge *p_edge);
 	size_t get_num_edges();
 	bool has_edge(eid p_eid);
-	Dictionary get_matching(DataGraph *p_graph);
+	//Dictionary get_matching(DataGraph *p_graph);
 
 	// void
 
