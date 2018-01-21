@@ -58,6 +58,8 @@ protected:
 	bool _matches(Object *p_vertex) {
 		return matches(Object::cast_to<DataGraphVertex>(p_vertex));
 	}
+	Dictionary _get_in_edges();
+	Dictionary _get_out_edges();
 
 public:
 	DataGraphVertex(vid p_vid = -1, DataGraph *p_graph = NULL) : _id(p_vid), _graph(p_graph) {}
@@ -79,8 +81,8 @@ public:
 	Dictionary get_metadata() const;
 	void set_metadata(Dictionary p_metadata);
 
-	List<DataGraphEdge*> get_in_edges();
-	List<DataGraphEdge*> get_out_edges();
+	HashMap<StringName, DataGraphEdge*, StringNameHasher> *get_in_edges();
+	HashMap<StringName, DataGraphEdge*, StringNameHasher> *get_out_edges();
 
 	Array get_in_edges_array();
 	Array get_out_edges_array();
@@ -159,9 +161,13 @@ private:
 
 	class VertexCluster {
 
+	private:
 		DataGraphVertex _vertex;
-		List<DataGraphEdge*> _in_edges;
-		List<DataGraphEdge*> _out_edges;
+		HashMap<StringName, DataGraphEdge*, StringNameHasher> _in_edges;
+		HashMap<StringName, DataGraphEdge*, StringNameHasher> _out_edges;
+
+		Dictionary _get_in_edges();
+		Dictionary _get_out_edges();
 
 	public:
 		VertexCluster(vid p_vid = -1, List<StringName> *p_labels = NULL, Dictionary p_metadata = Dictionary());
@@ -172,19 +178,20 @@ private:
 		bool operator==(VertexCluster &p_other);
 
 		DataGraphVertex *get_vertex() { return &_vertex; }
-		List<DataGraphEdge*> &get_in_edges() { return _in_edges; }
-		List<DataGraphEdge*> &get_out_edges() { return _out_edges; }
+		HashMap<StringName, DataGraphEdge*, StringNameHasher> *get_in_edges() { return &_in_edges; }
+		HashMap<StringName, DataGraphEdge*, StringNameHasher> *get_out_edges() { return &_out_edges; }
 
 		bool matches(VertexCluster *p_cluster);
 	};
 
-	Dictionary _vertices; //vid mapped to a VertexCluster
-	Dictionary _edges; //eid mapped to a DataGraphEdge, could've been a List, but the Dictionary's hashtable would give faster access
-
-	HashMap<StringName, List<DataGraphVertex*>, StringNameHasher> _vertex_map;
-	HashMap<StringName, List<DataGraphEdge*>, StringNameHasher> _edge_map;
+	HashMap<StringName, Dictionary, StringNameHasher> _cluster_map; // label -> vertex ID -> VertexCluster
+	HashMap<StringName, Dictionary, StringNameHasher> _edge_map; // label -> edge ID -> DataGraphEdge
 
 	bool _directed;
+
+	struct {
+		uint64_t num_edges = 0;
+	} _cache ;
 
 protected:
 	static void _bind_methods();
@@ -196,12 +203,21 @@ protected:
 	DataGraphEdge *_add_edge(Object *p_start = NULL, Object *p_end = NULL, const StringName &p_label = StringName(), Dictionary p_metadata = Dictionary()) {
 		return add_edge(Object::cast_to<DataGraphVertex>(p_start), Object::cast_to<DataGraphVertex>(p_end), p_label, p_metadata);
 	}
+	bool has_edge(DataGraphEdge *p_edge) {
+		return has_edge(Object::cast_to<DataGraphEdge>(p_edge));
+	}
+	Array _get_edges();
 	Array _get_vertices_with_labels(const List<StringName> &p_labels);
 	Array _get_edges_with_label(const StringName &p_label);
 	Array _get_labeled_vertices();
 	Array _get_labeled_edges();
-	void _remove_vertex(Object *p_vertex);
-	Error _remove_edge(Object *p_edge);
+	void _remove_vertex(Object *p_vertex) {
+		remove_vertex(Object::cast_to<DataGraphVertex>(p_vertex));
+	}
+	Error _remove_edge(Object *p_edge) {
+		return remove_edge(Object::cast_to<DataGraphEdge>(p_edge));
+	}
+
 	//Dictionary _get_matching(Object *p_graph);
 
 public:
@@ -225,13 +241,12 @@ public:
 
 	DataGraphEdge *get_edge(DataGraphVertex *p_start, DataGraphVertex *p_end);
 	DataGraphEdge *get_edge_id(eid p_eid);
-	void get_edge_list(List<DataGraphEdge*> *p_edges);
-	Array get_edges();
+	void get_edges(List<DataGraphEdge*> *p_edges);
 	DataGraphEdge *add_edge(DataGraphVertex *p_start, DataGraphVertex *p_end, const StringName &p_label, Dictionary p_metadata);
 	Error remove_edge_id(eid p_eid);
 	Error remove_edge(DataGraphEdge *p_edge);
 	size_t get_num_edges();
-	bool has_edge(eid p_eid);
+	bool has_edge(DataGraphEdge *p_edge);
 	//Dictionary get_matching(DataGraph *p_graph);
 
 	// void

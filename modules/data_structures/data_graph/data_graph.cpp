@@ -72,7 +72,7 @@ void DataGraphVertex::set_metadata(Dictionary p_metadata) {
 	_metadata = p_metadata;
 }
 
-List<DataGraphEdge *> DataGraphVertex::get_in_edges() {
+HashMap<StringName, DataGraphEdge*, StringNameHasher> *DataGraphVertex::get_in_edges() {
 	return _graph->get_vertex_cluster(_id)->get_in_edges();
 }
 
@@ -86,7 +86,7 @@ Array DataGraphVertex::get_in_edges_array() {
 	return ret;
 }
 
-List<DataGraphEdge *> DataGraphVertex::get_out_edges() {
+HashMap<StringName, DataGraphEdge*, StringNameHasher> *DataGraphVertex::get_out_edges() {
 	return _graph->get_vertex_cluster(_id)->get_out_edges();
 }
 
@@ -355,10 +355,6 @@ void DataGraph::remove_vertex(DataGraphVertex *p_vertex) {
 	remove_vertex_id(p_vertex->_id);
 }
 
-void DataGraph::_remove_vertex(Object *p_vertex) {
-	remove_vertex(Object::cast_to<DataGraphVertex>(p_vertex));
-}
-
 size_t DataGraph::get_num_vertices() {
 	return _vertices.size();
 }
@@ -381,17 +377,33 @@ DataGraphEdge *DataGraph::get_edge_id(eid p_eid) {
 	return Object::cast_to<DataGraphEdge>(get_edge_id(p_eid));
 }
 
-void DataGraph::get_edge_list(List<DataGraphEdge *> *p_edges) {
-	for (int i = 0; i < _edges.size(); ++i) {
-		p_edges->push_back(get_edge_id(i));
+void DataGraph::get_edges(List<DataGraphEdge *> *p_edges) {
+	List<StringName> keys;
+	List<Variant> vkeys;
+	_edge_map.get_key_list(&keys);
+	for (List<StringName>::Element *E = keys.front(); E; E = E->next()) {
+		Dictionary edges = _edge_map[E->get()];
+		edges.get_key_list(&vkeys);
+		for (List<Variant>::Element *V = vkeys.front(); V; V = V->next()) {
+			p_edges->push_back(Object::cast_to<DataGraphEdge>(edges[V->get()]));
+		}
+		vkeys.clear();
 	}
 }
 
-Array DataGraph::get_edges() {
+Array DataGraph::_get_edges() {
 	Array ret;
 
-	for (int i = 0; i < _edges.size(); ++i) {
-		ret.push_back(Variant(_edges[i]));
+	List<StringName> keys;
+	List<Variant> vkeys;
+	_edge_map.get_key_list(&keys);
+	for (List<StringName>::Element *E = keys.front(); E; E = E->next()) {
+		Dictionary edges = _edge_map[E->get()];
+		edges.get_key_list(&vkeys);
+		for (List<Variant>::Element *V = vkeys.front(); V; V = V->next()) {
+			ret.push_back(edges[V->get()]);
+		}
+		vkeys.clear();
 	}
 
 	return ret;
@@ -414,36 +426,27 @@ DataGraphEdge *DataGraph::add_edge(DataGraphVertex *p_start, DataGraphVertex *p_
 	return Object::cast_to<DataGraphEdge>(edge);
 }
 
-Error DataGraph::remove_edge_id(eid p_eid) {
-	if (!_edges.has(p_eid)) {
-		WARN_PRINT(("Failed to remove non-existent edge from DataGraph: " + itos(p_eid)).utf8().ptr());
-		return ERR_DOES_NOT_EXIST;
-	}
-	DataGraphEdge *edge = (DataGraphEdge*)(_edges[p_eid].operator uint64_t());
-	_edge_map[edge->_label].erase(edge);
-	_edges.erase(edge);
-
-	return OK;
-}
-
 Error DataGraph::remove_edge(DataGraphEdge *p_edge) {
 	if (!p_edge) {
 		WARN_PRINT("Cannot remove an edge from DataGraph with a null pointer.");
 		return ERR_DOES_NOT_EXIST;
 	}
-	return remove_edge_id(p_edge->_id);
-}
-
-Error DataGraph::_remove_edge(Object *p_edge) {
-	return remove_edge(Object::cast_to<DataGraphEdge>(p_edge));
+	bool label_exists = _edge_map.has(p_edge->_label);
+	Variant edge = label_exists ? _edge_map[p_edge->_label][p_edge->_id] : false;
+	if (!edge) {
+		WARN_PRINT(("Failed to remove non-existent edge from DataGraph: " + itos(p_edge->_id)).utf8().ptr());
+		return ERR_DOES_NOT_EXIST;
+	}
+	_edge_map[p_edge->_label].erase(p_edge->_id);
+	_cache.num_edges--;
 }
 
 size_t DataGraph::get_num_edges() {
-	return _edges.size();
+	return _cache.num_edges;
 }
 
-bool DataGraph::has_edge(eid p_eid) {
-	return _edges.has(p_eid);
+bool DataGraph::has_edge(DataGraphEdge *p_edge) {
+	return !p_edge || !_edge_map.has(p_edge->_label) || !_edge_map[p_edge->_label][p_edge->_id];
 }
 
 void DataGraph::get_vertices_with_labels(const List<StringName> &p_labels, List<DataGraphVertex *> *p_vertices) {
@@ -529,7 +532,6 @@ Array DataGraph::_get_labeled_edges() {
 
 void DataGraph::clear() {
 	_vertices.clear();
-	_edges.clear();
 	_vertex_map.clear();
 	_edge_map.clear();
 }
@@ -557,8 +559,8 @@ bool DataGraph::matches(DataGraph *p_graph) {
 	for (List<Variant>::Element *E = keys.front(); E; E = E->next()) {
 		if (!_vertices.has(E->get()))
 			return false;
-		DataGraphEdge *source_edge = (DataGraphEdge*)_edges[E->get()].operator uint64_t();
-		DataGraphEdge *target_edge = (DataGraphEdge*)p_graph->_edges[E->get()].operator uint64_t();
+		DataGraphEdge *source_edge = Object::cast_to<DataGraphEdge>(_edges[E->get()]);
+		DataGraphEdge *target_edge = Object::cast_to<DataGraphEdge>(_edges[E->get()]);
 		if (!source_edge->matches(target_edge))
 			return false;
 	}
