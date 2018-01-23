@@ -279,20 +279,20 @@ float FastNoise::GetNoise(float x, float y, float z)
 		default:
 			return 0.0f;
 		}
-	case FastNoise::NoiseType::Simplex:
-		return _Simplex(m_seed, x, y, z);
-	case FastNoise::NoiseType::SimplexFractal:
-		switch (m_fractalType)
-		{
-		case FastNoise::FBM:
-			return _SimplexFractalFBM(x, y, z);
-		case FastNoise::Billow:
-			return _SimplexFractalBillow(x, y, z);
-		case FastNoise::RigidMulti:
-			return _SimplexFractalRigidMulti(x, y, z);
-		default:
-			return 0.0f;
-		}
+	//case FastNoise::NoiseType::Simplex:
+	//	return _Simplex(m_seed, x, y, z);
+	//case FastNoise::NoiseType::SimplexFractal:
+	//	switch (m_fractalType)
+	//	{
+	//	case FastNoise::FBM:
+	//		return _SimplexFractalFBM(x, y, z);
+	//	case FastNoise::Billow:
+	//		return _SimplexFractalBillow(x, y, z);
+	//	case FastNoise::RigidMulti:
+	//		return _SimplexFractalRigidMulti(x, y, z);
+	//	default:
+	//		return 0.0f;
+	//	}
 	case FastNoise::NoiseType::Cellular:
 		switch (m_cellularReturnType)
 		{
@@ -357,20 +357,20 @@ float FastNoise::GetNoise(float x, float y)
 		default:
 			return 0.0f;
 		}
-	case FastNoise::NoiseType::Simplex:
-		return _Simplex(m_seed, x, y);
-	case FastNoise::NoiseType::SimplexFractal:
-		switch (m_fractalType)
-		{
-		case FastNoise::FBM:
-			return _SimplexFractalFBM(x, y);
-		case FastNoise::Billow:
-			return _SimplexFractalBillow(x, y);
-		case FastNoise::RigidMulti:
-			return _SimplexFractalRigidMulti(x, y);
-		default:
-			return 0.0f;
-		}
+	//case FastNoise::NoiseType::Simplex:
+	//	return _Simplex(m_seed, x, y);
+	//case FastNoise::NoiseType::SimplexFractal:
+	//	switch (m_fractalType)
+	//	{
+	//	case FastNoise::FBM:
+	//		return _SimplexFractalFBM(x, y);
+	//	case FastNoise::Billow:
+	//		return _SimplexFractalBillow(x, y);
+	//	case FastNoise::RigidMulti:
+	//		return _SimplexFractalRigidMulti(x, y);
+	//	default:
+	//		return 0.0f;
+	//	}
 	case FastNoise::NoiseType::Cellular:
 		switch (m_cellularReturnType)
 		{
@@ -1152,154 +1152,7 @@ float FastNoise::_Simplex(int seed, float x, float y, float z)
 	return 40.0f * (n0 + n1 + n2 + n3);
 }
 
-float FastNoise::GetSimplexFractal(float x, float y)
-{
-	x *= m_frequency;
-	y *= m_frequency;
-
-	switch (m_fractalType)
-	{
-	case FastNoise::FBM:
-		return _SimplexFractalFBM(x, y);
-	case FastNoise::Billow:
-		return _SimplexFractalBillow(x, y);
-	case FastNoise::RigidMulti:
-		return _SimplexFractalRigidMulti(x, y);
-	default:
-		return 0.0f;
-	}
-}
-
-float FastNoise::_SimplexFractalFBM(float x, float y)
-{
-	int seed = m_seed;
-	float sum = _Simplex(seed, x, y);
-	float max = 1.0f;
-	float amp = 1.0f;
-	unsigned int i = 0;
-
-	while (++i < m_octaves)
-	{
-		x *= m_lacunarity;
-		y *= m_lacunarity;
-
-		amp *= m_gain;
-		max += amp;
-		sum += _Simplex(++seed, x, y) * amp;
-	}
-
-	return sum / max;
-}
-
-float FastNoise::_SimplexFractalBillow(float x, float y)
-{
-	int seed = m_seed;
-	float sum = FastAbs(_Simplex(seed, x, y)) * 2.0f - 1.0f;
-	float max = 1.0f;
-	float amp = 1.0f;
-	unsigned int i = 0;
-
-	while (++i < m_octaves)
-	{
-		x *= m_lacunarity;
-		y *= m_lacunarity;
-
-		amp *= m_gain;
-		max += amp;
-		sum += (FastAbs(_Simplex(++seed, x, y)) * 2.0f - 1.0f) * amp;
-	}
-
-	return sum / max;
-}
-
-float FastNoise::_SimplexFractalRigidMulti(float x, float y)
-{
-	int seed = m_seed;
-	float sum = 1.0f - FastAbs(_Simplex(seed, x, y));
-	float amp = 1.0f;
-	unsigned int i = 0;
-
-	while (++i < m_octaves)
-	{
-		x *= m_lacunarity;
-		y *= m_lacunarity;
-
-		amp *= m_gain;
-		sum -= (1.0f - FastAbs(_Simplex(++seed, x, y))) * amp;
-	}
-
-	return sum;
-}
-
-float FastNoise::GetSimplex(float x, float y)
-{
-	return _Simplex(m_seed, x * m_frequency, y * m_frequency);
-}
-
-static inline float Dot(const float *g, float x, float y)
-{
-	return g[0] * x + g[1] * y;
-}
-
-static const float F2 = 1.f / 2.f;
-static const float G2 = 1.f / 4.f;
-
-float FastNoise::_Simplex(int seed, float x, float y)
-{
-	float t = (x + y) * F2;
-	int i = FastFloor(x + t);
-	int j = FastFloor(y + t);
-
-	t = (i + j) * G2;
-	float X0 = i - t;
-	float Y0 = j - t;
-
-	float x0 = x - X0;
-	float y0 = y - Y0;
-
-	int i1, j1;
-	if (x0 > y0)
-	{
-		i1 = 1; j1 = 0;
-	}
-	else
-	{
-		i1 = 0; j1 = 1;
-	}
-
-	float x1 = x0 - (float)i1 + G2;
-	float y1 = y0 - (float)j1 + G2;
-	float x2 = x0 - 1.0f + 2.0f*G2;
-	float y2 = y0 - 1.0f + 2.0f*G2;
-
-	float n0, n1, n2;
-
-	t = 0.6f - x0*x0 - y0*y0;
-	if (t < 0) n0 = 0;
-	else
-	{
-		t *= t;
-		n0 = t * t * Dot(&GRAD2D_LUT[CoordLUTIndex(seed, i, j)][0], x0, y0);
-	}
-
-	t = 0.6f - x1*x1 - y1*y1;
-	if (t < 0) n1 = 0;
-	else
-	{
-		t *= t;
-		n1 = t*t*Dot(&GRAD2D_LUT[CoordLUTIndex(seed, i + i1, j + j1)][0], x1, y1);
-	}
-
-	t = 0.6f - x2*x2 - y2*y2;
-	if (t < 0) n2 = 0;
-	else
-	{
-		t *= t;
-		n2 = t*t*Dot(&GRAD2D_LUT[CoordLUTIndex(seed, i + 1, j + 1)][0], x2, y2);
-	}
-
-	return  27.7f * (n0 + n1 + n2);// +0.001054489f;
-}
+// Note: Removed 2D Simplex Implementation to avoid patent licensing issues. Jumping straight from 3D to 4D.
 
 float FastNoise::GetSimplex(float x, float y, float z, float w)
 {

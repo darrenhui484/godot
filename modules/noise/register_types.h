@@ -28,5 +28,5 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-void register_summator_types();
-void unregister_summator_types();
+void register_noise_types();
+void unregister_noise_types();

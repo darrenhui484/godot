@@ -101,8 +101,8 @@ public:
 	float GetGradient(float x, float y);				// 12 ms	11 ms
 	float GetGradientFractal(float x, float y);			// 43 ms	40 ms
 
-	float GetSimplex(float x, float y);					// 17 ms	17 ms
-	float GetSimplexFractal(float x, float y);			// 55 ms	52 ms
+	//float GetSimplex(float x, float y);					// 17 ms	17 ms
+	//float GetSimplexFractal(float x, float y);			// 55 ms	52 ms
 
 	float GetCellular(float x, float y);				// 35 ms	33 ms
 	float GetCellularHQ(float x, float y);				// 96 ms	90 ms
@@ -169,10 +169,10 @@ protected:
 	float _GradientFractalRigidMulti(float x, float y);
 	float _Gradient(int seed, float x, float y);
 
-	float _SimplexFractalFBM(float x, float y);
-	float _SimplexFractalBillow(float x, float y);
-	float _SimplexFractalRigidMulti(float x, float y);
-	float _Simplex(int seed, float x, float y);
+	//float _SimplexFractalFBM(float x, float y);
+	//float _SimplexFractalBillow(float x, float y);
+	//float _SimplexFractalRigidMulti(float x, float y);
+	//float _Simplex(int seed, float x, float y);
 
 	float _Cellular(float x, float y);
 	float _CellularHQ(float x, float y);

@@ -2,8 +2,8 @@
 Import('env')
 
 env.add_source_files(env.modules_sources,"*.cpp")
-env.add_source_files(env.modules_sources,"lib/fast_noise*.cpp")
-env.add_source_files(env.modules_sources,"lib/open_simplex*.cpp")
+env.add_source_files(env.modules_sources,"lib/fast_noise/*.cpp")
+env.add_source_files(env.modules_sources,"lib/open_simplex/*.cpp")
 
 # FastNoise uses a few C++11 features
-module_env.Append(CPPFLAGS=["-std=c++11"])
+env.Append(CPPFLAGS=["-std=c++11"])

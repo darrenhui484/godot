@@ -37,6 +37,9 @@
 
 typedef fastnoise::FastNoise _Noise;
 
+class OsnNoise;
+class OsnFractalNoise;
+
 class Noise : public Reference {
 	GDCLASS(Noise, Reference);
 

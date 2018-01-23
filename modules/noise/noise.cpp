@@ -46,9 +46,9 @@ void Noise::set_cellular_noise_lookup(Ref<Noise> other_noise) {
 
 float Noise::get_noise_2d(float x, float y) {
 	//use OsnNoise or OsnFractalNoise
-	if (_noise.GetNoiseType == _Noise::NoiseType::Simplex) {
+	if (_noise.GetNoiseType() == _Noise::NoiseType::Simplex) {
 
-	} else if (_noise.GetNoiseType == _Noise::NoiseType::SimplexFractal) {
+	} else if (_noise.GetNoiseType() == _Noise::NoiseType::SimplexFractal) {
 
 	}
 	//use FastNoise
