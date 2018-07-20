@@ -36,21 +36,72 @@
 class DataGraphVertex : public Object {
     GDCLASS(DataGraphVertex, Object);
 
+	Variant _metadata;
+
+	Set<StringName> tags;
+
 protected:
     static void _bind_methods();
 
+	void _add_tags(Array p_tags);
+	void _remove_tags(Array p_tags);
+	bool _has_tags(Array p_tags) const;
+	Array _get_tags() const;
+
 public:
+
+	void set_metadata(Variant p_metadata);
+	Variant get_metadata() const;
+
+	void add_tags(const List<StringName> &p_tags);
+	void remove_tags(const List<StringName> &p_tags);
+	bool has_tags(const List<StringName> &p_tags) const;
+	const Set<StringName> &get_tags() const;
+	void clear_tags();
+
     DataGraphVertex();
     ~DataGraphVertex();
 };
 
-class DataGraph : public Reference {
-    GDCLASS(DataGraph, Reference);
+// use obj->get_instance_id() for unique IDs
+// use call() to handle the scripting side
+class DataGraphLayer : public Object {
+    GDCLASS(DataGraphLayer, Object);
 
 protected:
     static void _bind_methods();
 
 public:
+	DataGraphLayer();
+	~DataGraphLayer();
+};
+
+class DataGraphLayerVertexTags : public DataGraphLayer {
+    GDCLASS(DataGraphLayerVertexTags, DataGraphLayer);
+
+protected:
+
+public:
+	DataGraphLayerVertexTags();
+	~DataGraphLayerVertexTags();
+};
+
+
+class DataGraph : public Reference {
+    GDCLASS(DataGraph, Reference);
+
+	Vector<DataGraphLayer*> layers;
+
+	typedef Set<DataGraphVertex *> Connections;
+	typedef HashMap<DataGraphVertex *, Connections, HashMapHasherDefault, HashMapComparatorDefault<DataGraphVertex> > GraphMap;
+
+	GraphMap vertices;
+
+protected:
+    static void _bind_methods();
+
+public:
+
     DataGraph();
     ~DataGraph();
 };
