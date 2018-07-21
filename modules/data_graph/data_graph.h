@@ -33,12 +33,16 @@
 
 #include "reference.h"
 
+class DataGraph;
+
 class DataGraphVertex : public Object {
     GDCLASS(DataGraphVertex, Object);
 
-	Variant _metadata;
+	friend DataGraph;
 
-	Set<StringName> tags;
+	Variant _data;
+	bool _is_relationship : 1;
+	DataGraph *_graph;
 
 protected:
     static void _bind_methods();
@@ -50,57 +54,56 @@ protected:
 
 public:
 
-	void set_metadata(Variant p_metadata);
-	Variant get_metadata() const;
+	void set_data(Variant p_metadata);
+	Variant get_data() const;
+
+	void set_graph(DataGraph *p_graph);
+	DataGraph *get_graph();
 
 	void add_tags(const List<StringName> &p_tags);
 	void remove_tags(const List<StringName> &p_tags);
-	bool has_tags(const List<StringName> &p_tags) const;
-	const Set<StringName> &get_tags() const;
+	bool has_tags(const List<StringName> &p_tags);
+	const Set<StringName> &get_tags();
 	void clear_tags();
 
     DataGraphVertex();
     ~DataGraphVertex();
 };
 
-// use obj->get_instance_id() for unique IDs
-// use call() to handle the scripting side
-class DataGraphLayer : public Object {
-    GDCLASS(DataGraphLayer, Object);
-
-protected:
-    static void _bind_methods();
-
-public:
-	DataGraphLayer();
-	~DataGraphLayer();
-};
-
-class DataGraphLayerVertexTags : public DataGraphLayer {
-    GDCLASS(DataGraphLayerVertexTags, DataGraphLayer);
-
-protected:
-
-public:
-	DataGraphLayerVertexTags();
-	~DataGraphLayerVertexTags();
-};
-
-
 class DataGraph : public Reference {
     GDCLASS(DataGraph, Reference);
-
-	Vector<DataGraphLayer*> layers;
 
 	typedef Set<DataGraphVertex *> Connections;
 	typedef HashMap<DataGraphVertex *, Connections, HashMapHasherDefault, HashMapComparatorDefault<DataGraphVertex> > GraphMap;
 
-	GraphMap vertices;
+	typedef Set<DataGraphVertex *> VertexSet;
+	typedef HashMap<StringName, VertexSet> TagMap;
+
+	typedef HashMap<RefPtr, VertexSet> ScriptMap;
+
+	GraphMap verts_in;
+	GraphMap verts_out;
+	TagMap tag_index;
+	ScriptMap script_index;
 
 protected:
     static void _bind_methods();
 
+	void _add_vertex(Object *p_vertex);
+	void _remove_vertex(Object *p_vertex);
 public:
+
+	void add_vertex(DataGraphVertex *p_vertex);
+	void remove_vertex(DataGraphVertex *p_vertex);
+
+	//mirrored in vertices
+	void v_add_tags(DataGraphVertex *p_vertex, const List<StringName> &p_tags);
+	void v_remove_tags(DataGraphVertex *p_vertex, const List<StringName> &p_tags);
+	bool v_has_tags(DataGraphVertex *p_vertex, const List<StringName> &p_tags) const;
+	const Set<StringName> &v_get_tags(DataGraphVertex *p_vertex) const;
+	void v_clear_tags(DataGraphVertex *p_vertex);
+
+	void clear();
 
     DataGraph();
     ~DataGraph();

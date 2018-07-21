@@ -68,46 +68,54 @@ Array DataGraphVertex::_get_tags() const {
 	return ret;
 }
 
-void DataGraphVertex::set_metadata(Variant p_metadata) {
-	_metadata = p_metadata;
+void DataGraphVertex::set_data(Variant p_data) {
+	_data = p_data;
 }
 
-Variant DataGraphVertex::get_metadata() const {
-	return _metadata;
+Variant DataGraphVertex::get_data() const {
+	return _data;
+}
+
+void DataGraphVertex::set_graph(DataGraph *p_graph) {
+	_graph = p_graph;
+}
+
+DataGraph *DataGraphVertex::get_graph() {
+	return _graph;
 }
 
 void DataGraphVertex::add_tags(const List<StringName> &p_tags) {
+	ERR_FAIL_COND(!_graph);
 	for (const List<StringName>::Element *E = p_tags.front(); E; E = E->next()) {
+		if (_graph->)
 		tags.insert(E->get());
 	}
 }
 
 void DataGraphVertex::remove_tags(const List<StringName> &p_tags) {
-	for (const List<StringName>::Element *E = p_tags.front(); E; E = E->next()) {
-		tags.erase(E->get());
-	}
+	ERR_FAIL_COND(!_graph);
+	return _graph->v_remove_tags(this, p_tags);
 }
 
-bool DataGraphVertex::has_tags(const List<StringName> &p_tags) const {
-	bool result = true;
-	for (const List<StringName>::Element *E = p_tags.front(); E && result; E = E->next()) {
-		result &= tags.has(E->get());
-	}
-	return result;
+bool DataGraphVertex::has_tags(const List<StringName> &p_tags) {
+	ERR_FAIL_COND(!_graph);
+	return _graph->v_has_tags(this, p_tags);
 }
 
-const Set<StringName> &DataGraphVertex::get_tags() const {
-	return tags;
+const Set<StringName> &DataGraphVertex::get_tags() {
+	ERR_FAIL_COND(!_graph);
+	return _graph->v_get_tags(this);
 }
 
 void DataGraphVertex::clear_tags() {
-	tags.clear();
+	ERR_FAIL_COND(!_graph);
+	_graph->v_clear_tags(this);
 }
 
 void DataGraphVertex::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("set_metadata"), &DataGraphVertex::set_metadata);
-	ClassDB::bind_method(D_METHOD("get_metadata"), &DataGraphVertex::get_metadata);
+	ClassDB::bind_method(D_METHOD("set_data"), &DataGraphVertex::set_data);
+	ClassDB::bind_method(D_METHOD("get_data"), &DataGraphVertex::get_data);
 
 	ClassDB::bind_method(D_METHOD("add_tags"), &DataGraphVertex::_add_tags);
 	ClassDB::bind_method(D_METHOD("remove_tags"), &DataGraphVertex::_remove_tags);
@@ -126,24 +134,88 @@ DataGraphVertex::~DataGraphVertex() {
 
 }
 
-void DataGraphLayer::_bind_methods() {
+void DataGraph::_add_vertex(Object *p_vertex) {
 
 }
 
-DataGraphLayer::DataGraphLayer() {
+void DataGraph::_remove_vertex(Object *p_vertex) {
 
 }
 
-DataGraphLayer::~DataGraphLayer() {
+void DataGraph::add_vertex(DataGraphVertex *p_vertex) {
 
 }
 
-DataGraphLayerVertexTags::DataGraphLayerVertexTags() {
+void DataGraph::remove_vertex(DataGraphVertex *p_vertex) {
 
+	//TODO: cleanup connections
+
+	verts_in.erase(p_vertex);
+	verts_out.erase(p_vertex);
+
+	List<StringName> keys;
+	tag_index.get_key_list(&keys);
+	for (List<StringName>::Element *E = keys.front(); E; E = E->next()) {
+		tag_index[E->get()].erase(p_vertex);
+	}
+
+	if (!p_vertex->get_script().is_null()) {
+		script_index[p_vertex->get_script()].erase(p_vertex);
+	}
 }
 
-DataGraphLayerVertexTags::~DataGraphLayerVertexTags() {
+void DataGraph::v_add_tags(DataGraphVertex *p_vertex, const List<StringName> &p_tags) {
+	for (const List<StringName>::Element *E = p_tags.front(); E; E = E->next()) {
+		tag_index[E->get()].insert(p_vertex);
+	}
+}
 
+void DataGraph::v_remove_tags(DataGraphVertex *p_vertex, const List<StringName> &p_tags) {
+	for (const List<StringName>::Element *E = p_tags.front(); E; E = E->next()) {
+		tag_index[E->get()].erase(p_vertex);
+	}
+}
+
+bool DataGraph::v_has_tags(DataGraphVertex *p_vertex, const List<StringName> &p_tags) const {
+	bool ret = true;
+	List<StringName> keys;
+	tag_index.get_key_list(&keys);
+	for (List<StringName>::Element *E = keys.front(); E && ret; E = E->next()) {
+		ret &= tag_index[E->get()].has(p_vertex);
+	}
+	return ret;
+}
+
+const Set<StringName> &DataGraph::v_get_tags(DataGraphVertex *p_vertex) const {
+	Set<StringName> ret;
+	List<StringName> keys;
+	tag_index.get_key_list(&keys);
+	for (List<StringName>::Element *E = keys.front(); E; E = E->next()) {
+		if (tag_index[E->get()].has(p_vertex))
+			ret.insert(E->get());
+	}
+	return ret;
+}
+
+void DataGraph::v_clear_tags(DataGraphVertex *p_vertex) {
+	List<StringName> keys;
+	tag_index.get_key_list(&keys);
+	for (List<StringName>::Element *E = keys.front(); E; E = E->next()) {
+		tag_index[E->get()].erase(p_vertex);
+	}
+}
+
+
+void DataGraph::clear() {
+	tag_index.clear();
+	script_index.clear();
+
+	List<DataGraphVertex *> keys;
+	verts_in.get_key_list(&keys);
+	for (List<DataGraphVertex *>::Element *E = keys.front(); E; E = E->next()) {
+		memdelete(E->get());
+	}
+	verts_out.clear();
 }
 
 void DataGraph::_bind_methods() {
@@ -155,7 +227,5 @@ DataGraph::DataGraph() {
 }
 
 DataGraph::~DataGraph() {
-	for (int i = 0; i < layers.size(); i++) {
-		memdelete(layers[i]);
-	}
+
 }
