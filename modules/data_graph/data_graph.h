@@ -35,14 +35,30 @@
 
 class DataGraph;
 
+// I'm gonna need to rethink this whole thing.
+// I wanted this as a basis for a Graph to be used in a ResourceDB.
+// I wanted a ResourceDB to track references between resources.
+// What resources? "Resources" for writing and design tools.
+// But these would often times be text files or text data within .tres files.
+// And it should likely be capable of working with both types.
+// Unless I start creating ResourceFormats that understand .md, .rst, .txt, etc.,
+// I don't have much of a reason to to develop this graph immediately...
+// In fact, what I'm most likely to end up doing is just having an in-memory
+// relationship tracker that creates .import files for resources, text files, etc.
+// Something like a .tres.graph.import. The graph can just create a queryable GUI
+// of this flat-file data.
+
 class DataGraphVertex : public Object {
     GDCLASS(DataGraphVertex, Object);
 
 	friend DataGraph;
 
+	uint64_t _id;
 	Variant _data;
 	bool _is_relationship : 1;
 	DataGraph *_graph;
+	Map<StringName, DataGraphVertex*> tag_index;
+	Map<RefPtr, DataGraphVertex*> script_index;
 
 protected:
     static void _bind_methods();
@@ -91,8 +107,8 @@ protected:
 
 	void _add_vertex(Object *p_vertex);
 	void _remove_vertex(Object *p_vertex);
-public:
 
+public:
 	void add_vertex(DataGraphVertex *p_vertex);
 	void remove_vertex(DataGraphVertex *p_vertex);
 

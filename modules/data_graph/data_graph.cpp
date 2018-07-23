@@ -29,6 +29,7 @@
 /*************************************************************************/
 
 #include "core/class_db.h"
+#include "core/script_language.h"
 #include "data_graph.h"
 
 void DataGraphVertex::_add_tags(Array p_tags) {
@@ -149,6 +150,18 @@ void DataGraph::add_vertex(DataGraphVertex *p_vertex) {
 void DataGraph::remove_vertex(DataGraphVertex *p_vertex) {
 
 	//TODO: cleanup connections
+	List<DataGraphVertex*> verts;
+	verts_in.get_key_list(&verts);
+	for (List<DataGraphVertex*>::Element *E = verts.front(); E; E = E->next()) {
+		verts_out[E->get()].erase(p_vertex);
+	}
+	verts.clear();
+	verts_out.get_key_list(&verts);
+	for (List<DataGraphVertex*>::Element *E = verts.front(); E; E = E->next()) {
+		verts_in[E->get()].erase(p_vertex);
+	}
+	verts_in.erase(p_vertex);
+	verts_out.erase(p_vertex);
 
 	verts_in.erase(p_vertex);
 	verts_out.erase(p_vertex);
