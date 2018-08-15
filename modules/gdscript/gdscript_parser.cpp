@@ -4196,6 +4196,28 @@ void GDScriptParser::_parse_class(ClassNode *p_class) {
 										}
 										break;
 									}
+
+									if (tokenizer->get_token() == GDScriptTokenizer::TK_IDENTIFIER && p_class->constant_expressions.has(tokenizer->get_token_identifier())) {
+										ClassNode::Constant &c = p_class->constant_expressions[tokenizer->get_token_identifier()];
+										if (c.type.kind == DataType::BUILTIN) {
+											const ConstantNode *cn = static_cast<const ConstantNode *>(constant.expression);
+											if (cn && cn->value.get_type() == Variant::DICTIONARY) {
+												Dictionary dict = cn->value;
+												if (!dict.size()) {
+													_set_error("Exported string enum has no possible values.");
+													return;
+												}
+
+												if (tokenizer->get_token(1) == GDScriptTokenizer::TK_COMMA && 1) {}
+												List<Variant> keys;
+												dict.get_key_list(&keys);
+												PoolStringArray values;
+												for (List<Variant>::Element *E = keys.front(); E; E = E->next()) {
+													values.push_back(String(E->get()));
+												}
+											}
+										}
+									}
 								} break;
 								case Variant::COLOR: {
 
