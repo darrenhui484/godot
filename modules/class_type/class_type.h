@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  create_dialog.h                                                      */
+/*  class_type.h                                                         */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,88 +28,67 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef CREATE_DIALOG_H
-#define CREATE_DIALOG_H
+#ifndef CLASS_TYPE_H
+#define CLASS_TYPE_H
 
-#include "editor_help.h"
-#include "scene/gui/button.h"
-#include "scene/gui/dialogs.h"
-#include "scene/gui/item_list.h"
-#include "scene/gui/label.h"
-#include "scene/gui/line_edit.h"
-#include "scene/gui/tree.h"
-/**
-	@author Juan Linietsky <reduzio@gmail.com>
-*/
+#include "core/array.h"
+#include "core/reference.h"
+#include "core/resource.h"
 
-class CreateDialog : public ConfirmationDialog {
+class ClassType : public Reference {
+	GDCLASS(ClassType, Reference);
 
-	GDCLASS(CreateDialog, ConfirmationDialog)
-
-	Vector<String> favorite_list;
-	Tree *favorites;
-	Tree *recent;
-
-	Button *favorite;
-	LineEdit *search_box;
-	Tree *search_options;
-	bool is_replace_mode;
-	String base_type;
-	String preferred_search_result_type;
-	EditorHelpBit *help_bit;
-	List<StringName> type_list;
-	Set<StringName> type_blacklist;
-	String _scene_template_cache;
-
-	void _item_selected();
-
-	void _update_search();
-	void _update_favorite_list();
-	void _save_favorite_list();
-	void _favorite_toggled();
-
-	void _history_selected();
-	void _favorite_selected();
-
-	void _history_activated();
-	void _favorite_activated();
-
-	void _sbox_input(const Ref<InputEvent> &p_ie);
-
-	void _confirmed();
-	void _text_changed(const String &p_newtext);
-
-	Ref<Texture> _get_editor_icon(const String &p_type) const;
-
-	void add_type(const String &p_type, HashMap<String, TreeItem *> &p_types, TreeItem *p_root, TreeItem **to_select);
-
-	Variant get_drag_data_fw(const Point2 &p_point, Control *p_from);
-	bool can_drop_data_fw(const Point2 &p_point, const Variant &p_data, Control *p_from) const;
-	void drop_data_fw(const Point2 &p_point, const Variant &p_data, Control *p_from);
-
-	String _get_name_from_text(const String &p_text) const;
+	StringName _name;
+	String _path;
 
 protected:
-	void _notification(int p_what);
 	static void _bind_methods();
 
-	void _save_and_update_favorite_list();
+	void _update_path_by_name();
+	Array _get_class_list();
 
 public:
-	Object *instance_selected();
-	String get_selected_type();
+	static void get_class_list(List<StringName> *p_list);
+	static StringName get_name_by_path(const String &p_path);
+	static StringName get_name_by_object(const Object *p_object, String *r_path = NULL);
+	static bool is_valid_path(const String &p_path);
+	static RES get_scene_root_script(const String &p_path);
+	static RES get_scene_root_scene(const String &p_path);
 
-	void set_base_type(const String &p_base);
-	String get_base_type() const;
+	void set_name(const String &p_name);
+	String get_name() const;
+	void set_path(const String &p_path);
+	String get_path() const;
+	bool has_valid_path() const { return is_valid_path(_path); }
 
-	void set_preferred_search_result_type(const String &p_preferred_type);
-	String get_preferred_search_result_type();
+	bool is_engine_class() const;
+	bool is_script_class() const;
+	bool is_scene_template() const;
+	bool exists() const;
 
-	String get_scene_template_cache() const { return _scene_template_cache; }
+	bool is_non_class_res() const;
 
-	void popup_create(bool p_dont_clear, bool p_replace_mode = false);
+	RES get_res() const;
+	RES get_editor_icon() const;
 
-	CreateDialog();
+	StringName get_engine_parent() const;
+	StringName get_script_parent() const;
+	StringName get_scene_parent() const;
+	StringName get_parent_class() const;
+	Array get_parents() const;
+
+	bool is_engine_parent(const StringName &p_class) const;
+	bool is_script_parent(const StringName &p_class) const;
+	bool is_scene_parent(const StringName &p_class) const;
+	bool is_parent_class(const StringName &p_class) const;
+
+	bool can_instance() const;
+	Object *instance() const;
+
+	static Ref<ClassType> from_name(const StringName &p_name);
+	static Ref<ClassType> from_path(const String &p_path);
+	static Ref<ClassType> from_object(const Object *p_object);
+	ClassType();
 };
 
 #endif
