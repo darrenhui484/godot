@@ -346,8 +346,21 @@ class GDScriptLanguage : public ScriptLanguage {
 	bool profiling;
 	uint64_t script_frame_time;
 
+	HashMap<String, List<String>> file_to_ext_methods;
+	HashMap<StringName, List<String>> ext_method_to_file;
+
+	HashMap<String, HashMap<StringName, Set<StringName>>> ext_methods;
+	void init_ext_methods();
+	void write_ext_methods(const Vector<String> &p_paths, const Vector<String> &p_ext_methods);
+
 public:
 	int calls;
+
+	void ext_method_insert(const String &p_path, const StringName& p_type, const StringName &p_method);
+	bool ext_method_remove(const String &p_path, const StringName& p_type, const StringName &p_method);
+	bool ext_method_remove_file(const String &p_path);
+	bool ext_method_has(const String &p_path, const StringName& p_type, const StringName &p_method) const;
+	String ext_method_find(const StringName& p_type, const StringName &p_method) const;
 
 	bool debug_break(const String &p_error, bool p_allow_continue = true);
 	bool debug_break_parse(const String &p_file, int p_line, const String &p_error);

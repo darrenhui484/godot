@@ -1876,10 +1876,107 @@ String GDScriptLanguage::get_global_class_name(const String &p_path, String *r_b
 			else if (c->icon_path.is_rel_path())
 				*r_icon_path = p_path.get_base_dir().plus_file(c->icon_path).simplify_path();
 		}
+
+		// Still need to refactor GDScriptLanguage methods
+		// Need to rebase for ClassType to test inheritance compatibility with declared extension methods.
+		// Need to figure out how to make the parser construct FunctionNodes that properly reference the real data.
+		// ^ may end up making a __ext_methods__ global constant that THIS (below) code generates content for.
+		// ^ Would be a Dictionary with type -> method -> script (maybe)
+		// ^ and have the parser do an inline replacement so that the compiler sees it as the static func call.
+		for (const List<String>::Element *E = c->extension_methods.front(); E; E = E->next()) {
+			String value = E->get();
+			String type = value.get_slicec(';', 0);
+			String method = value.get_slicec(';', 1);
+			GDScriptLanguage::get_singleton()->ext_method_insert(p_path, type, method);
+		}
+
 		return c->name;
+	} else {
+		GDScriptLanguage::get_singleton()->ext_method_remove_file(p_path);
 	}
 
 	return String();
+}
+
+void GDScriptLanguage::init_ext_methods() {
+	ext_methods.clear();
+	if (ProjectSettings::get_singleton()->has_setting("gdscript_ext_methods")) {
+		Dictionary paths_to_exts = ProjectSettings::get_singleton()->get_setting("gdscript_ext_methods");
+		if (!paths_to_exts.empty()) {
+			List<Variant> keys;
+			paths_to_exts.get_key_list(&keys);
+			for (List<Variant>::Element *E = keys.front(); E; E = E->next()) {
+				String path = E->get();
+				if (!ext_methods.has(path))
+					ext_methods[path] = HashMap<StringName, Set<StringName>>();
+				Dictionary types_to_methods = paths_to_exts[path];
+				List<Variant> types;
+				types_to_methods.get_key_list(&types);
+				for (List<Variant>::Element *E = keys.front(); E; E = E->next()) {
+					String type = E->get();
+					if (!ext_methods[path].has(type))
+						ext_methods[path][type] = Set<StringName>();
+					Vector<String> methods = types_to_methods[type].operator String().split(";");
+					for (int i = 0; i < methods.size(); i++) {
+						ext_methods[path][type].insert(methods[i]);
+					}
+				}
+			}
+		}
+	}
+}
+
+void GDScriptLanguage::ext_method_insert(const String &p_path, const StringName& p_type, const StringName &p_method) {
+	if (!ext_methods.has(p_path))
+		ext_methods[p_path] = HashMap<StringName, Set<StringName>>();
+	if (!ext_methods[p_path].has(p_type))
+		ext_methods[p_path][p_type] = Set<StringName>();
+	ext_methods[p_path][p_type].insert(p_method);
+}
+
+bool GDScriptLanguage::ext_method_remove(const String &p_path, const StringName& p_type, const StringName &p_method) {
+	if (!ext_methods.has(p_path))
+		return false;
+	if (!ext_methods[p_path].has(p_type))
+		return false;
+	if (!ext_methods[p_path][p_type].has(p_method))
+		return false;
+	ext_methods[p_path][p_type].erase(p_method);
+	if (!ext_methods[p_path][p_type].size()) {
+		ext_methods[p_path].erase(p_type);
+		if (!ext_methods[p_path].size())
+			ext_methods.erase(p_path);
+	}
+	return true;
+}
+
+bool GDScriptLanguage::ext_method_remove_file(const String &p_path) {
+	return ext_methods.erase(p_path);
+}
+
+bool GDScriptLanguage::ext_method_has(const String &p_path, const StringName& p_type, const StringName &p_method) const {
+	return ext_methods.has(p_path) && ext_methods[p_path].has(p_type) && ext_methods[p_path][p_type].has(p_method);
+}
+
+String GDScriptLanguage::ext_method_find(const StringName& p_type, const StringName &p_method) const {
+	List<String> files;
+	ext_methods.get_key_list(&files);
+	for (List<String>::Element *E = files.front(); E; E = E->next()) {
+		if (ext_methods[E->get()].has(p_type) && ext_methods[E->get()][p_type].has(p_method))
+			return E->get();
+	}
+	return String();
+}
+
+void GDScriptLanguage::write_ext_methods(const Vector<String> &p_paths, const Vector<String> &p_ext_methods) {
+	Dictionary paths_to_exts;
+	for (int i = 0; i < p_paths.size(); i++) {
+		String path = p_paths[i];
+		HashMap<StringName, Set<StringName>> &script_ext_methods = ext_methods[p_paths[i]];
+		for (int j = 0; j < p_ext_methods.size(); j++) {
+			
+		}
+	}
 }
 
 #ifdef DEBUG_ENABLED
