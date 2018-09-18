@@ -3569,7 +3569,19 @@ void GDScriptParser::_parse_class(ClassNode *p_class) {
 			*/
 			case GDScriptTokenizer::TK_PR_STATIC: {
 				tokenizer->advance();
-				if (tokenizer->get_token() != GDScriptTokenizer::TK_PR_FUNCTION) {
+
+				if (tokenizer->get_token() == GDScriptTokenizer::TK_IDENTIFIER) {
+					if (p_class->name == StringName()) {
+						_set_error("Only script classes can define extension methods. Define a name with 'class_name'.");
+						return;
+					}
+					if (_get_completable_identifier(GDScriptParser::COMPLETION_IDENTIFIER, ext_method_owner_cache)) {
+					}
+					if (!ClassDB::class_exists(ext_method_owner_cache) && !ScriptServer::is_global_class(ext_method_owner_cache)) {
+						_set_error("Expected 'func' or engine/script class name for extension method.");
+						return;
+					}
+				} else if (tokenizer->get_token() != GDScriptTokenizer::TK_PR_FUNCTION) {
 
 					_set_error("Expected 'func'.");
 					return;
@@ -3580,6 +3592,12 @@ void GDScriptParser::_parse_class(ClassNode *p_class) {
 
 				bool _static = false;
 				pending_newline = -1;
+
+				StringName ext_method_owner = ext_method_owner_cache;
+				if (ext_method_owner != StringName()) {
+					_static = true;
+					ext_method_owner_cache = StringName();
+				}
 
 				if (tokenizer->get_token(-1) == GDScriptTokenizer::TK_PR_STATIC) {
 
@@ -3607,6 +3625,12 @@ void GDScriptParser::_parse_class(ClassNode *p_class) {
 					if (p_class->static_functions[i]->name == name) {
 						_set_error("Function '" + String(name) + "' already exists in this class (at line: " + itos(p_class->static_functions[i]->line) + ").");
 					}
+				}
+
+				String ext_method_file = GDScriptLanguage::get_singleton()->ext_method_find(ext_method_owner, name);
+				if (!ext_method_file.empty()) {
+					_set_error("Function '" + String(name) + "' already exists in extension of '" + ext_method_owner + "' (in " + ext_method_file + ".)");
+					return;
 				}
 
 #ifdef DEBUG_ENABLED
@@ -3637,7 +3661,12 @@ void GDScriptParser::_parse_class(ClassNode *p_class) {
 
 				int fnline = tokenizer->get_token_line();
 
-				if (tokenizer->get_token() != GDScriptTokenizer::TK_PARENTHESIS_CLOSE) {
+				if (tokenizer->get_token() == GDScriptTokenizer::TK_PARENTHESIS_CLOSE) {
+					if (ext_method_owner != StringName()) {
+						_set_error("Expected self parameter for extension method. static <type> func <name>(<self>, ...).");
+						return;
+					}
+				} else {
 					//has arguments
 					bool defaulting = false;
 					while (true) {
@@ -3822,8 +3851,12 @@ void GDScriptParser::_parse_class(ClassNode *p_class) {
 				function->rpc_mode = rpc_mode;
 				rpc_mode = MultiplayerAPI::RPC_MODE_DISABLED;
 
-				if (_static)
-					p_class->static_functions.push_back(function);
+				if (_static) {
+					if (ext_method_owner != StringName()) {
+						p_class->extension_methods.push_back(String(ext_method_owner) + ";" + name);
+					} else
+						p_class->static_functions.push_back(function);
+				}
 				else
 					p_class->functions.push_back(function);
 
