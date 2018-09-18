@@ -37,6 +37,7 @@
 #include "core/os/os.h"
 #include "core/project_settings.h"
 #include "gdscript_compiler.h"
+#include "modules/class_type/class_type.h"
 
 ///////////////////////////
 
@@ -1873,10 +1874,139 @@ String GDScriptLanguage::get_global_class_name(const String &p_path, String *r_b
 			else if (c->icon_path.is_rel_path())
 				*r_icon_path = p_path.get_base_dir().plus_file(c->icon_path).simplify_path();
 		}
+
+		// Still need to refactor GDScriptLanguage methods
+		// Need to rebase for ClassType to test inheritance compatibility with declared extension methods.
+		// Need to figure out how to make the parser construct FunctionNodes that properly reference the real data.
+		// ^ may end up making a __ext_methods__ global constant that THIS (below) code generates content for.
+		// ^ Would be a Dictionary with type -> method -> script (maybe)
+		// ^ and have the parser do an inline replacement so that the compiler sees it as the static func call.
+		for (const List<String>::Element *E = c->extension_methods.front(); E; E = E->next()) {
+			String value = E->get();
+			String type = value.get_slicec(';', 0);
+			String method = value.get_slicec(';', 1);
+			GDScriptLanguage::get_singleton()->ext_method_insert(p_path, type, method);
+		}
+
 		return c->name;
+	} else {
+		GDScriptLanguage::get_singleton()->ext_method_erase_file(p_path);
 	}
 
 	return String();
+}
+
+GDScriptLanguage::ExtMethod::Error GDScriptLanguage::ext_method_insert(const String &p_path, const StringName& p_type, const StringName &p_method) {
+	ExtMethod em(p_path, p_type, p_method);
+	if (ext_methods.has(em))
+		return ExtMethod::Error::GDSX_ERR_ALREADY_EXISTS;
+
+	Ref<ClassType> type = ClassType::from_name(p_type);
+	if (!type->exists())
+		return ExtMethod::Error::GDSX_ERR_CLASS_NOT_RECOGNIZED;
+
+	if (p_path.empty() || !FileAccess::exists(p_path))
+		return ExtMethod::Error::GDSX_ERR_BAD_PATH;
+
+	for (const List<const ExtMethod *>::Element *E = ext_methods_by_name[p_method].front(); E; E = E->next()) {
+		ERR_FAIL_COND_V(!E->get(), ExtMethod::Error::GDSX_ERR_ITERATION_FAILURE);
+		if (type->is_parent_class(E->get()->type))
+			return ExtMethod::Error::GDSX_ERR_ALREADY_INHERITED_EXT;
+	}
+
+	if (type->has_method(p_method))
+		return ExtMethod::Error::GDSX_ERR_ALREADY_INHERITED_METHOD;
+
+	Set<ExtMethod>::Element *e = ext_methods.insert(em);
+
+	if (!ext_methods_by_path.has(em.path))
+		ext_methods_by_path[em.path] = List<const ExtMethod *>();
+	ext_methods_by_path[em.path].push_back(&e->get());
+
+	if (!ext_methods_by_name.has(em.name))
+		ext_methods_by_name[em.name] = List<const ExtMethod *>();
+	ext_methods_by_name[em.name].push_back(&e->get());
+
+	if (!ext_methods_by_type.has(em.type))
+		ext_methods_by_type[em.type] = List<const ExtMethod *>();
+	ext_methods_by_type[em.type].push_back(&e->get());
+
+	return ExtMethod::Error::GDSX_OK;
+}
+
+GDScriptLanguage::ExtMethod::Error GDScriptLanguage::ext_method_erase(const String &p_path, const StringName& p_type, const StringName &p_method) {
+	ExtMethod em(p_path, p_type, p_method);
+	if (!ext_methods.has(em))
+		return ExtMethod::Error::GDSX_ERR_EXT_METHOD_NOT_FOUND;
+
+	Set<ExtMethod>::Element *del = ext_methods.find(em);
+	ext_methods_by_path[p_path].erase(&del->get());
+	ext_methods_by_name[p_method].erase(&del->get());
+	ext_methods_by_type[p_type].erase(&del->get());
+	ext_methods.erase(em);
+}
+
+GDScriptLanguage::ExtMethod::Error GDScriptLanguage::ext_method_erase_file(const String &p_path) {
+	if (!ext_methods_by_path.has(p_path))
+		return ExtMethod::Error::GDSX_ERR_DEF_FILE_NOT_FOUND;
+
+	for (List<const ExtMethod *>::Element *E = ext_methods_by_path[p_path].front(); E; E = E->next()) {
+		ext_methods_by_name[E->get()->name].erase(E->get());
+		ext_methods_by_type[E->get()->type].erase(E->get());
+		ext_methods.erase(*E->get());
+	}
+	ext_methods_by_path.erase(p_path);
+
+	return ExtMethod::Error::GDSX_OK;
+}
+
+bool GDScriptLanguage::ext_method_has(const StringName& p_type, const StringName &p_method) const {
+	return ext_methods.has(ExtMethod("", p_type, p_method));
+}
+
+void GDScriptLanguage::ext_method_get_data_by_type(const StringName& p_type, List<String> *r_list) const {
+	ERR_FAIL_COND(!r_list);
+
+	List<const ExtMethod *> methods = ext_methods_by_type[p_type];
+	for (List<const ExtMethod *>::Element *E = methods.front(); E; E = E->next()) {
+		const ExtMethod *em = E->get();
+		r_list->push_back(String(em->name) + ";" + em->type + ";" + em->path);
+	}
+}
+
+String GDScriptLanguage::ext_method_get_path(const StringName& p_type, const StringName &p_method) const {
+	for (const List<const ExtMethod *>::Element *E = ext_methods_by_name[p_method].front(); E; E = E->next()) {
+		ERR_FAIL_COND_V(!E->get(), String());
+		if (E->get()->type == p_type)
+			return E->get()->path;
+	}
+	return String();
+}
+
+void GDScriptLanguage::save_ext_methods() {
+	Array to_serialize;
+	for (Set<ExtMethod>::Element *E = ext_methods.front(); E; E = E->next()) {
+		Dictionary d;
+		const ExtMethod &em = E->get();
+		d["path"] = em.path;
+		d["type"] = em.path;
+		d["name"] = em.name;
+		to_serialize.push_back(d);
+	}
+	ProjectSettings::get_singleton()->set_setting("_gdscript_ext_methods", to_serialize);
+}
+
+void GDScriptLanguage::load_ext_methods() {
+	ext_methods_by_path.clear();
+	ext_methods_by_name.clear();
+	ext_methods.clear();
+
+	Array arr = ProjectSettings::get_singleton()->get_setting("_gdscript_ext_methods");
+	for (int i = 0; i < arr.size(); i++) {
+		Dictionary d = arr[i];
+		ERR_FAIL_COND(!d.has("path") || !d.has("type") || !d.has("name"));
+		ext_method_insert(d["path"], d["type"], d["name"]);
+	}
 }
 
 #ifdef DEBUG_ENABLED

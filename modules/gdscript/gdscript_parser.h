@@ -152,6 +152,7 @@ public:
 		Vector<StringName> extends_class;
 		DataType base_type;
 		String icon_path;
+		List<String> extension_methods;
 
 		struct Member {
 			PropertyInfo _export;
@@ -566,6 +567,9 @@ private:
 	bool completion_ident_is_call;
 
 	PropertyInfo current_export;
+	StringName ext_method_owner_cache;
+
+	void _setup_ext_method_dependencies(ClassNode *p_class);
 
 	MultiplayerAPI::RPCMode rpc_mode;
 

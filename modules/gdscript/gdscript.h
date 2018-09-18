@@ -346,8 +346,60 @@ class GDScriptLanguage : public ScriptLanguage {
 	bool profiling;
 	uint64_t script_frame_time;
 
+	// When someone defines a method, we will need to know whether that method is defined anywhere else,
+	// i.e. whether it's already been defined for that file or in our MethodName to File map.
+	struct ExtMethod;
+
+	Set<ExtMethod> ext_methods;
+	Map<String, List<const ExtMethod *>> ext_methods_by_path;
+	Map<StringName, List<const ExtMethod *>> ext_methods_by_name;
+	Map<StringName, List<const ExtMethod *>> ext_methods_by_type;
+
+	void load_ext_methods();
+	void save_ext_methods();
+
 public:
+	struct ExtMethod {
+		String path;
+		StringName type;
+		StringName name;
+
+		bool operator==(const ExtMethod &p_other) const {
+			return type == p_other.type && name == p_other.name;
+		}
+
+		bool operator<(const ExtMethod &p_other) const {
+			return type == p_other.type ? name < p_other.name : type < p_other.type;
+		}
+
+		ExtMethod(const String &p_path = String(), const StringName &p_type = StringName(), const StringName &p_name = StringName()) {
+			path = p_path;
+			type = p_type;
+			name = p_name;
+		}
+
+		enum Error {
+			GDSX_OK,
+			GDSX_ERR_ALREADY_EXISTS,
+			GDSX_ERR_CLASS_NOT_RECOGNIZED,
+			GDSX_ERR_BAD_PATH,
+			GDSX_ERR_ITERATION_FAILURE,
+			GDSX_ERR_ALREADY_INHERITED_EXT,
+			GDSX_ERR_ALREADY_INHERITED_METHOD,
+			GDSX_ERR_EXT_METHOD_NOT_FOUND,
+			GDSX_ERR_DEF_FILE_NOT_FOUND
+		};
+	};
+
 	int calls;
+
+	GDScriptLanguage::ExtMethod::Error ext_method_insert(const String &p_path, const StringName& p_type, const StringName &p_method);
+	GDScriptLanguage::ExtMethod::Error ext_method_erase(const String &p_path, const StringName& p_type, const StringName &p_method);
+	GDScriptLanguage::ExtMethod::Error ext_method_erase_file(const String &p_path);
+	bool ext_method_has(const StringName& p_type, const StringName &p_method) const;
+	bool ext_method_has_type(const StringName& p_type) const { return ext_methods_by_type.has(p_type); }
+	void ext_method_get_data_by_type(const StringName& p_type, List<String> *r_list) const;
+	String ext_method_get_path(const StringName& p_type, const StringName &p_method) const;
 
 	bool debug_break(const String &p_error, bool p_allow_continue = true);
 	bool debug_break_parse(const String &p_file, int p_line, const String &p_error);

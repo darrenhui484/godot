@@ -39,6 +39,7 @@
 #include "core/reference.h"
 #include "core/script_language.h"
 #include "gdscript.h"
+#include "modules/class_type/class_type.h"
 
 template <class T>
 T *GDScriptParser::alloc_node() {
@@ -712,16 +713,30 @@ GDScriptParser::Node *GDScriptParser::_parse_expression(Node *p_parent, bool p_s
 				tokenizer->advance(2);
 			} else {
 
-				SelfNode *self = alloc_node<SelfNode>();
-				op->arguments.push_back(self);
-
 				StringName identifier;
 				if (_get_completable_identifier(COMPLETION_FUNCTION, identifier)) {
 				}
 
 				IdentifierNode *id = alloc_node<IdentifierNode>();
 				id->name = identifier;
-				op->arguments.push_back(id);
+
+				const ClassNode *cln = current_class;
+				StringName ext_method_key = "#" + identifier;
+				if (cln->constant_expressions.has(ext_method_key)) {
+					ConstantNode *cn = static_cast<ConstantNode *>(cln->constant_expressions[ext_method_key].expression);
+					op->arguments.push_back(cn);
+
+					op->arguments.push_back(id);
+
+					SelfNode *self = alloc_node<SelfNode>();
+					op->arguments.push_back(self);
+				} else {
+					SelfNode *self = alloc_node<SelfNode>();
+					op->arguments.push_back(self);
+
+					op->arguments.push_back(id);
+				}
+
 				tokenizer->advance(1);
 			}
 
@@ -3447,6 +3462,7 @@ void GDScriptParser::_parse_class(ClassNode *p_class) {
 					_set_error("Expected end of statement after extends");
 					return;
 				}
+				_setup_ext_method_dependencies(p_class);
 
 			} break;
 			case GDScriptTokenizer::TK_PR_CLASS_NAME: {
@@ -3587,7 +3603,15 @@ void GDScriptParser::_parse_class(ClassNode *p_class) {
 			*/
 			case GDScriptTokenizer::TK_PR_STATIC: {
 				tokenizer->advance();
-				if (tokenizer->get_token() != GDScriptTokenizer::TK_PR_FUNCTION) {
+
+				if (tokenizer->get_token() == GDScriptTokenizer::TK_IDENTIFIER) {
+					if (_get_completable_identifier(GDScriptParser::COMPLETION_IDENTIFIER, ext_method_owner_cache)) {
+					}
+					if (ClassType::from_name(ext_method_owner_cache)->exists()) {
+						_set_error("Extension method must be for a valid engine or script class name.");
+						return;
+					}
+				} else if (tokenizer->get_token() != GDScriptTokenizer::TK_PR_FUNCTION) {
 
 					_set_error("Expected 'func'.");
 					return;
@@ -3598,6 +3622,12 @@ void GDScriptParser::_parse_class(ClassNode *p_class) {
 
 				bool _static = false;
 				pending_newline = -1;
+
+				StringName ext_method_owner = ext_method_owner_cache;
+				if (ext_method_owner != StringName()) {
+					_static = true;
+					ext_method_owner_cache = StringName();
+				}
 
 				if (tokenizer->get_token(-1) == GDScriptTokenizer::TK_PR_STATIC) {
 
@@ -3625,6 +3655,40 @@ void GDScriptParser::_parse_class(ClassNode *p_class) {
 					if (p_class->static_functions[i]->name == name) {
 						_set_error("Function '" + String(name) + "' already exists in this class (at line: " + itos(p_class->static_functions[i]->line) + ").");
 					}
+				}
+
+				String ext_method_file = GDScriptLanguage::get_singleton()->ext_method_get_path(ext_method_owner, name);
+				if (!ext_method_file.empty()) {
+					_set_error("Function '" + String(name) + "' already exists in extension of '" + ext_method_owner + "' (in " + ext_method_file + ".)");
+					return;
+				}
+
+				GDScriptLanguage::ExtMethod::Error err = GDScriptLanguage::get_singleton()->ext_method_insert(self_path, ext_method_owner, name);
+				switch (err) {
+					case GDScriptLanguage::ExtMethod::Error::GDSX_ERR_ALREADY_EXISTS: {
+						_set_error("Function '" + String(name) + "' already exists as extension of '" + ext_method_owner + "' (in " + ext_method_file + ".)");
+						return;
+					} break;
+					case GDScriptLanguage::ExtMethod::Error::GDSX_ERR_CLASS_NOT_RECOGNIZED: {
+						_set_error("Class name '" + ext_method_owner + "' was not recognized.)");
+						return;
+					} break;
+					case GDScriptLanguage::ExtMethod::Error::GDSX_ERR_BAD_PATH: {
+						_set_error("Invalid file path '" + ext_method_file + "'.)");
+						return;
+					} break;
+					case GDScriptLanguage::ExtMethod::Error::GDSX_ERR_ITERATION_FAILURE: {
+						_set_error("An extension method pointer for '" + name + "' has desynchronized.'");
+						return;
+					} break;
+					case GDScriptLanguage::ExtMethod::Error::GDSX_ERR_ALREADY_INHERITED_EXT: {
+						_set_error("Extension method '" + String(name) + "' already exists for inherited type '" + ext_method_owner + "' (in " + ext_method_file + ").");
+						return;
+					} break;
+					case GDScriptLanguage::ExtMethod::Error::GDSX_ERR_ALREADY_INHERITED_METHOD: {
+						_set_error("Function '" + String(name) + "' already inherited by another parent type.");
+						return;
+					} break;
 				}
 
 #ifdef DEBUG_ENABLED
@@ -3655,7 +3719,12 @@ void GDScriptParser::_parse_class(ClassNode *p_class) {
 
 				int fnline = tokenizer->get_token_line();
 
-				if (tokenizer->get_token() != GDScriptTokenizer::TK_PARENTHESIS_CLOSE) {
+				if (tokenizer->get_token() == GDScriptTokenizer::TK_PARENTHESIS_CLOSE) {
+					if (ext_method_owner != StringName()) {
+						_set_error("Expected self parameter for extension method. static <type> func <name>(<self>, ...).");
+						return;
+					}
+				} else {
 					//has arguments
 					bool defaulting = false;
 					while (true) {
@@ -3840,8 +3909,12 @@ void GDScriptParser::_parse_class(ClassNode *p_class) {
 				function->rpc_mode = rpc_mode;
 				rpc_mode = MultiplayerAPI::RPC_MODE_DISABLED;
 
-				if (_static)
+				if (_static) {
+					if (ext_method_owner != StringName())
+						p_class->extension_methods.push_back(String(ext_method_owner) + ";" + name);
+
 					p_class->static_functions.push_back(function);
+				}
 				else
 					p_class->functions.push_back(function);
 
@@ -7948,6 +8021,44 @@ void GDScriptParser::_check_block_types(BlockNode *p_block) {
 		}
 	}
 #endif // DEBUG_ENABLED
+}
+
+void GDScriptParser::_setup_ext_method_dependencies(ClassNode *p_class) {
+	ERR_FAIL_COND(!p_class);
+	if (!p_class->extends_class.size())
+		return;
+	StringName class_name = p_class->extends_class[0];
+	Ref<ClassType> inherits = ClassType::from_name(class_name);
+	if (inherits.is_null() || inherits->is_scene_template())
+		return;
+
+	while (inherits->exists()) {
+		if (GDScriptLanguage::get_singleton()->ext_method_has_type(inherits->get_name())) {
+			List<String> em_data;
+			GDScriptLanguage::get_singleton()->ext_method_get_data_by_type(inherits->get_name(), &em_data);
+			for (List<String>::Element *E = em_data.front(); E; E = E->next()) {
+				Vector<String> data = E->get().split(";");
+				StringName name = data[0];
+				StringName type = data[1];
+				String path = data[2];
+
+				ClassNode::Constant c;
+				if (self_path == path) {
+					SelfNode *sn = alloc_node<SelfNode>();
+					c.expression = sn;
+					c.type = sn->get_datatype();
+				} else {
+					ConstantNode *cn = alloc_node<ConstantNode>();
+					cn->value = ResourceLoader::load(path);
+					cn->datatype = _type_from_variant(cn->value);
+					c.expression = cn;
+					c.type = cn->datatype;
+				}
+				p_class->constant_expressions.insert("#" + name, c);
+			}
+		}
+		inherits = inherits->get_type_parent();
+	}
 }
 
 void GDScriptParser::_set_error(const String &p_error, int p_line, int p_column) {
