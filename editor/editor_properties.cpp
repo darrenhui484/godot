@@ -2942,7 +2942,7 @@ bool EditorInspectorDefaultPlugin::parse_property(Object *p_object, Variant::Typ
 
 	switch (p_type) {
 
-		// atomic types
+			// atomic types
 		case Variant::NIL: {
 			EditorPropertyNil *editor = memnew(EditorPropertyNil);
 			add_property_editor(p_path, editor);
@@ -3299,7 +3299,7 @@ bool EditorInspectorDefaultPlugin::parse_property(Object *p_object, Variant::Typ
 
 		} break;
 
-		// misc types
+			// misc types
 		case Variant::COLOR: {
 			EditorPropertyColor *editor = memnew(EditorPropertyColor);
 			editor->setup(p_hint != PROPERTY_HINT_COLOR_NO_ALPHA);

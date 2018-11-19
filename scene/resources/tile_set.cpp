@@ -32,7 +32,11 @@
 #include "core/array.h"
 #include "core/engine.h"
 
-bool TileSet::_set(const StringName &p_name, const Variant &p_value) {
+void TileProperties::_bind_methods() {}
+
+TileProperties::TileProperties() {}
+
+bool TileSet::_set(const StringName& p_name, const Variant& p_value) {
 
 	String n = p_name;
 	int slash = n.find("/");
@@ -66,7 +70,8 @@ bool TileSet::_set(const StringName &p_name, const Variant &p_value) {
 		bool is_autotile = p_value;
 		if (is_autotile)
 			tile_set_tile_mode(id, AUTO_TILE);
-	} else if (what.left(9) == "autotile/") {
+	}
+	else if (what.left(9) == "autotile/") {
 		what = what.right(9);
 		if (what == "bitmask_mode")
 			autotile_set_bitmask_mode(id, (BitmaskMode)((int)p_value));
@@ -84,37 +89,43 @@ bool TileSet::_set(const StringName &p_name, const Variant &p_value) {
 				while (p.size() > 0) {
 					if (p[0].get_type() == Variant::VECTOR2) {
 						last_coord = p[0];
-					} else if (p[0].get_type() == Variant::INT) {
+					}
+					else if (p[0].get_type() == Variant::INT) {
 						autotile_set_bitmask(id, last_coord, p[0]);
 					}
 					p.pop_front();
 				}
 			}
-		} else if (what == "occluder_map") {
+		}
+		else if (what == "occluder_map") {
 			tile_map[id].autotile_data.occluder_map.clear();
 			Array p = p_value;
 			Vector2 last_coord;
 			while (p.size() > 0) {
 				if (p[0].get_type() == Variant::VECTOR2) {
 					last_coord = p[0];
-				} else if (p[0].get_type() == Variant::OBJECT) {
+				}
+				else if (p[0].get_type() == Variant::OBJECT) {
 					autotile_set_light_occluder(id, p[0], last_coord);
 				}
 				p.pop_front();
 			}
-		} else if (what == "navpoly_map") {
+		}
+		else if (what == "navpoly_map") {
 			tile_map[id].autotile_data.navpoly_map.clear();
 			Array p = p_value;
 			Vector2 last_coord;
 			while (p.size() > 0) {
 				if (p[0].get_type() == Variant::VECTOR2) {
 					last_coord = p[0];
-				} else if (p[0].get_type() == Variant::OBJECT) {
+				}
+				else if (p[0].get_type() == Variant::OBJECT) {
 					autotile_set_navigation_polygon(id, p[0], last_coord);
 				}
 				p.pop_front();
 			}
-		} else if (what == "priority_map") {
+		}
+		else if (what == "priority_map") {
 			tile_map[id].autotile_data.priority_map.clear();
 			Array p = p_value;
 			Vector3 val;
@@ -130,7 +141,8 @@ bool TileSet::_set(const StringName &p_name, const Variant &p_value) {
 				}
 				p.pop_front();
 			}
-		} else if (what == "z_index_map") {
+		}
+		else if (what == "z_index_map") {
 			tile_map[id].autotile_data.z_index_map.clear();
 			Array p = p_value;
 			Vector3 val;
@@ -147,12 +159,14 @@ bool TileSet::_set(const StringName &p_name, const Variant &p_value) {
 				p.pop_front();
 			}
 		}
-	} else if (what == "shape")
+	}
+	else if (what == "shape")
 		if (tile_get_shape_count(id) > 0) {
 			for (int i = 0; i < tile_get_shape_count(id); i++) {
 				tile_set_shape(id, i, p_value);
 			}
-		} else {
+		}
+		else {
 			tile_set_shape(id, 0, p_value);
 		}
 	else if (what == "shape_offset")
@@ -160,7 +174,8 @@ bool TileSet::_set(const StringName &p_name, const Variant &p_value) {
 			for (int i = 0; i < tile_get_shape_count(id); i++) {
 				tile_set_shape_offset(id, i, p_value);
 			}
-		} else {
+		}
+		else {
 			tile_set_shape_offset(id, 0, p_value);
 		}
 	else if (what == "shape_transform")
@@ -168,7 +183,8 @@ bool TileSet::_set(const StringName &p_name, const Variant &p_value) {
 			for (int i = 0; i < tile_get_shape_count(id); i++) {
 				tile_set_shape_transform(id, i, p_value);
 			}
-		} else {
+		}
+		else {
 			tile_set_shape_transform(id, 0, p_value);
 		}
 	else if (what == "shape_one_way")
@@ -176,7 +192,8 @@ bool TileSet::_set(const StringName &p_name, const Variant &p_value) {
 			for (int i = 0; i < tile_get_shape_count(id); i++) {
 				tile_set_shape_one_way(id, i, p_value);
 			}
-		} else {
+		}
+		else {
 			tile_set_shape_one_way(id, 0, p_value);
 		}
 	else if (what == "shape_one_way_margin")
@@ -184,7 +201,8 @@ bool TileSet::_set(const StringName &p_name, const Variant &p_value) {
 			for (int i = 0; i < tile_get_shape_count(id); i++) {
 				tile_set_shape_one_way_margin(id, i, p_value);
 			}
-		} else {
+		}
+		else {
 			tile_set_shape_one_way_margin(id, 0, p_value);
 		}
 	else if (what == "shapes")
@@ -199,13 +217,22 @@ bool TileSet::_set(const StringName &p_name, const Variant &p_value) {
 		tile_set_navigation_polygon_offset(id, p_value);
 	else if (what == "z_index")
 		tile_set_z_index(id, p_value);
+	else if (what == "properties")
+		tile_set_properties(id, p_value);
+	else if (what == "properties_script") {
+		Ref<TileProperties> properties = tile_get_properties(id);
+		if (properties.is_valid()) {
+			Ref<Script> script = p_value;
+			properties->set_script(script.get_ref_ptr());
+		}
+	}
 	else
 		return false;
 
 	return true;
 }
 
-bool TileSet::_get(const StringName &p_name, Variant &r_ret) const {
+bool TileSet::_get(const StringName& p_name, Variant& r_ret) const {
 
 	String n = p_name;
 	int slash = n.find("/");
@@ -245,29 +272,32 @@ bool TileSet::_get(const StringName &p_name, Variant &r_ret) const {
 			r_ret = autotile_get_spacing(id);
 		else if (what == "bitmask_flags") {
 			Array p;
-			for (Map<Vector2, uint32_t>::Element *E = tile_map[id].autotile_data.flags.front(); E; E = E->next()) {
+			for (Map<Vector2, uint32_t>::Element* E = tile_map[id].autotile_data.flags.front(); E; E = E->next()) {
 				p.push_back(E->key());
 				p.push_back(E->value());
 			}
 			r_ret = p;
-		} else if (what == "occluder_map") {
+		}
+		else if (what == "occluder_map") {
 			Array p;
-			for (Map<Vector2, Ref<OccluderPolygon2D> >::Element *E = tile_map[id].autotile_data.occluder_map.front(); E; E = E->next()) {
+			for (Map<Vector2, Ref<OccluderPolygon2D> >::Element* E = tile_map[id].autotile_data.occluder_map.front(); E; E = E->next()) {
 				p.push_back(E->key());
 				p.push_back(E->value());
 			}
 			r_ret = p;
-		} else if (what == "navpoly_map") {
+		}
+		else if (what == "navpoly_map") {
 			Array p;
-			for (Map<Vector2, Ref<NavigationPolygon> >::Element *E = tile_map[id].autotile_data.navpoly_map.front(); E; E = E->next()) {
+			for (Map<Vector2, Ref<NavigationPolygon> >::Element* E = tile_map[id].autotile_data.navpoly_map.front(); E; E = E->next()) {
 				p.push_back(E->key());
 				p.push_back(E->value());
 			}
 			r_ret = p;
-		} else if (what == "priority_map") {
+		}
+		else if (what == "priority_map") {
 			Array p;
 			Vector3 v;
-			for (Map<Vector2, int>::Element *E = tile_map[id].autotile_data.priority_map.front(); E; E = E->next()) {
+			for (Map<Vector2, int>::Element* E = tile_map[id].autotile_data.priority_map.front(); E; E = E->next()) {
 				if (E->value() > 1) {
 					//Don't save default value
 					v.x = E->key().x;
@@ -277,10 +307,11 @@ bool TileSet::_get(const StringName &p_name, Variant &r_ret) const {
 				}
 			}
 			r_ret = p;
-		} else if (what == "z_index_map") {
+		}
+		else if (what == "z_index_map") {
 			Array p;
 			Vector3 v;
-			for (Map<Vector2, int>::Element *E = tile_map[id].autotile_data.z_index_map.front(); E; E = E->next()) {
+			for (Map<Vector2, int>::Element* E = tile_map[id].autotile_data.z_index_map.front(); E; E = E->next()) {
 				if (E->value() != 0) {
 					//Don't save default value
 					v.x = E->key().x;
@@ -291,7 +322,8 @@ bool TileSet::_get(const StringName &p_name, Variant &r_ret) const {
 			}
 			r_ret = p;
 		}
-	} else if (what == "shape")
+	}
+	else if (what == "shape")
 		r_ret = tile_get_shape(id, 0);
 	else if (what == "shape_offset")
 		r_ret = tile_get_shape_offset(id, 0);
@@ -313,15 +345,19 @@ bool TileSet::_get(const StringName &p_name, Variant &r_ret) const {
 		r_ret = tile_get_navigation_polygon_offset(id);
 	else if (what == "z_index")
 		r_ret = tile_get_z_index(id);
+	else if (what == "properties")
+		r_ret = tile_get_properties(id);
+	else if (what == "properties_script")
+		r_ret = tile_get_properties(id)->get_script();
 	else
 		return false;
 
 	return true;
 }
 
-void TileSet::_get_property_list(List<PropertyInfo> *p_list) const {
+void TileSet::_get_property_list(List<PropertyInfo>* p_list) const {
 
-	for (Map<int, TileData>::Element *E = tile_map.front(); E; E = E->next()) {
+	for (Map<int, TileData>::Element* E = tile_map.front(); E; E = E->next()) {
 
 		int id = E->key();
 		String pre = itos(id) + "/";
@@ -343,7 +379,8 @@ void TileSet::_get_property_list(List<PropertyInfo> *p_list) const {
 			p_list->push_back(PropertyInfo(Variant::ARRAY, pre + "autotile/navpoly_map", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR | PROPERTY_USAGE_INTERNAL));
 			p_list->push_back(PropertyInfo(Variant::ARRAY, pre + "autotile/priority_map", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR | PROPERTY_USAGE_INTERNAL));
 			p_list->push_back(PropertyInfo(Variant::ARRAY, pre + "autotile/z_index_map", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR | PROPERTY_USAGE_INTERNAL));
-		} else if (tile_get_tile_mode(id) == ATLAS_TILE) {
+		}
+		else if (tile_get_tile_mode(id) == ATLAS_TILE) {
 			p_list->push_back(PropertyInfo(Variant::VECTOR2, pre + "autotile/icon_coordinate", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR | PROPERTY_USAGE_INTERNAL));
 			p_list->push_back(PropertyInfo(Variant::VECTOR2, pre + "autotile/tile_size", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR | PROPERTY_USAGE_INTERNAL));
 			p_list->push_back(PropertyInfo(Variant::INT, pre + "autotile/spacing", PROPERTY_HINT_RANGE, "0,256,1", PROPERTY_USAGE_NOEDITOR | PROPERTY_USAGE_INTERNAL));
@@ -363,6 +400,9 @@ void TileSet::_get_property_list(List<PropertyInfo> *p_list) const {
 		p_list->push_back(PropertyInfo(Variant::REAL, pre + "shape_one_way_margin", PROPERTY_HINT_RANGE, "0,128,0.01", PROPERTY_USAGE_NOEDITOR));
 		p_list->push_back(PropertyInfo(Variant::ARRAY, pre + "shapes", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR));
 		p_list->push_back(PropertyInfo(Variant::INT, pre + "z_index", PROPERTY_HINT_RANGE, itos(VS::CANVAS_ITEM_Z_MIN) + "," + itos(VS::CANVAS_ITEM_Z_MAX) + ",1", PROPERTY_USAGE_NOEDITOR));
+		p_list->push_back(PropertyInfo(Variant::INT, pre + "properties", PROPERTY_HINT_RESOURCE_TYPE, "TileProperties"));
+		p_list->push_back(PropertyInfo(Variant::INT, pre + "properties_script", PROPERTY_HINT_RESOURCE_TYPE, "Script"));
+		p_list->push_back(PropertyInfo(Variant::DICTIONARY, pre + "meta", PROPERTY_HINT_NONE));
 	}
 }
 
@@ -370,8 +410,38 @@ void TileSet::create_tile(int p_id) {
 	ERR_FAIL_COND(tile_map.has(p_id));
 	tile_map[p_id] = TileData();
 	tile_map[p_id].autotile_data = AutotileData();
+	if (tile_properties_script.is_valid()) {
+		tile_map[p_id].properties = Ref<TileProperties>(memnew(TileProperties));
+		tile_map[p_id].properties->set_script(tile_properties_script.get_ref_ptr());
+	}
 	_change_notify("");
 	emit_changed();
+}
+
+void TileSet::set_tile_properties_script(const Ref<Script>& p_script) {
+	if (tile_properties_script == p_script)
+		return;
+	if (tile_properties_script.is_null()) {
+		for (Map<int, TileSet::TileData>::Element* E = tile_map.front(); E; E = E->next()) {
+			Ref<TileProperties> tp = memnew(TileProperties());
+			tp->set_script(p_script.get_ref_ptr());
+			E->value().properties = tp;
+		}
+	}
+	else {
+		for (Map<int, TileSet::TileData>::Element* E = tile_map.front(); E; E = E->next()) {
+			Ref<TileProperties> p = E->value().properties;
+			ERR_CONTINUE(p.is_valid());
+			Ref<Script> s = p->get_script();
+			if (s != p_script)
+				E->value().properties->set_script(p_script.get_ref_ptr());
+		}
+	}
+	tile_properties_script = p_script;
+}
+
+Ref<Script> TileSet::get_tile_properties_script() const {
+	return tile_properties_script;
 }
 
 void TileSet::autotile_set_bitmask_mode(int p_id, BitmaskMode p_mode) {
@@ -387,7 +457,7 @@ TileSet::BitmaskMode TileSet::autotile_get_bitmask_mode(int p_id) const {
 	return tile_map[p_id].autotile_data.bitmask_mode;
 }
 
-void TileSet::tile_set_texture(int p_id, const Ref<Texture2D> &p_texture) {
+void TileSet::tile_set_texture(int p_id, const Ref<Texture2D>& p_texture) {
 
 	ERR_FAIL_COND(!tile_map.has(p_id));
 	tile_map[p_id].texture = p_texture;
@@ -401,7 +471,7 @@ Ref<Texture2D> TileSet::tile_get_texture(int p_id) const {
 	return tile_map[p_id].texture;
 }
 
-void TileSet::tile_set_normal_map(int p_id, const Ref<Texture2D> &p_normal_map) {
+void TileSet::tile_set_normal_map(int p_id, const Ref<Texture2D>& p_normal_map) {
 
 	ERR_FAIL_COND(!tile_map.has(p_id));
 	tile_map[p_id].normal_map = p_normal_map;
@@ -414,7 +484,7 @@ Ref<Texture2D> TileSet::tile_get_normal_map(int p_id) const {
 	return tile_map[p_id].normal_map;
 }
 
-void TileSet::tile_set_material(int p_id, const Ref<ShaderMaterial> &p_material) {
+void TileSet::tile_set_material(int p_id, const Ref<ShaderMaterial>& p_material) {
 
 	ERR_FAIL_COND(!tile_map.has(p_id));
 	tile_map[p_id].material = p_material;
@@ -427,7 +497,7 @@ Ref<ShaderMaterial> TileSet::tile_get_material(int p_id) const {
 	return tile_map[p_id].material;
 }
 
-void TileSet::tile_set_modulate(int p_id, const Color &p_modulate) {
+void TileSet::tile_set_modulate(int p_id, const Color& p_modulate) {
 
 	ERR_FAIL_COND(!tile_map.has(p_id));
 	tile_map[p_id].modulate = p_modulate;
@@ -441,7 +511,7 @@ Color TileSet::tile_get_modulate(int p_id) const {
 	return tile_map[p_id].modulate;
 }
 
-void TileSet::tile_set_texture_offset(int p_id, const Vector2 &p_offset) {
+void TileSet::tile_set_texture_offset(int p_id, const Vector2& p_offset) {
 
 	ERR_FAIL_COND(!tile_map.has(p_id));
 	tile_map[p_id].offset = p_offset;
@@ -454,7 +524,7 @@ Vector2 TileSet::tile_get_texture_offset(int p_id) const {
 	return tile_map[p_id].offset;
 }
 
-void TileSet::tile_set_region(int p_id, const Rect2 &p_region) {
+void TileSet::tile_set_region(int p_id, const Rect2& p_region) {
 
 	ERR_FAIL_COND(!tile_map.has(p_id));
 	tile_map[p_id].region = p_region;
@@ -527,14 +597,14 @@ void TileSet::autotile_clear_bitmask_map(int p_id) {
 	tile_map[p_id].autotile_data.flags.clear();
 }
 
-void TileSet::autotile_set_subtile_priority(int p_id, const Vector2 &p_coord, int p_priority) {
+void TileSet::autotile_set_subtile_priority(int p_id, const Vector2& p_coord, int p_priority) {
 
 	ERR_FAIL_COND(!tile_map.has(p_id));
 	ERR_FAIL_COND(p_priority <= 0);
 	tile_map[p_id].autotile_data.priority_map[p_coord] = p_priority;
 }
 
-int TileSet::autotile_get_subtile_priority(int p_id, const Vector2 &p_coord) {
+int TileSet::autotile_get_subtile_priority(int p_id, const Vector2& p_coord) {
 
 	ERR_FAIL_COND_V(!tile_map.has(p_id), 1);
 	if (tile_map[p_id].autotile_data.priority_map.has(p_coord)) {
@@ -544,21 +614,21 @@ int TileSet::autotile_get_subtile_priority(int p_id, const Vector2 &p_coord) {
 	return 1;
 }
 
-const Map<Vector2, int> &TileSet::autotile_get_priority_map(int p_id) const {
+const Map<Vector2, int>& TileSet::autotile_get_priority_map(int p_id) const {
 
 	static Map<Vector2, int> dummy;
 	ERR_FAIL_COND_V(!tile_map.has(p_id), dummy);
 	return tile_map[p_id].autotile_data.priority_map;
 }
 
-void TileSet::autotile_set_z_index(int p_id, const Vector2 &p_coord, int p_z_index) {
+void TileSet::autotile_set_z_index(int p_id, const Vector2& p_coord, int p_z_index) {
 
 	ERR_FAIL_COND(!tile_map.has(p_id));
 	tile_map[p_id].autotile_data.z_index_map[p_coord] = p_z_index;
 	emit_changed();
 }
 
-int TileSet::autotile_get_z_index(int p_id, const Vector2 &p_coord) {
+int TileSet::autotile_get_z_index(int p_id, const Vector2& p_coord) {
 
 	ERR_FAIL_COND_V(!tile_map.has(p_id), 1);
 	if (tile_map[p_id].autotile_data.z_index_map.has(p_coord)) {
@@ -568,7 +638,7 @@ int TileSet::autotile_get_z_index(int p_id, const Vector2 &p_coord) {
 	return 0;
 }
 
-const Map<Vector2, int> &TileSet::autotile_get_z_index_map(int p_id) const {
+const Map<Vector2, int>& TileSet::autotile_get_z_index_map(int p_id) const {
 
 	static Map<Vector2, int> dummy;
 	ERR_FAIL_COND_V(!tile_map.has(p_id), dummy);
@@ -581,7 +651,8 @@ void TileSet::autotile_set_bitmask(int p_id, Vector2 p_coord, uint32_t p_flag) {
 	if (p_flag == 0) {
 		if (tile_map[p_id].autotile_data.flags.has(p_coord))
 			tile_map[p_id].autotile_data.flags.erase(p_coord);
-	} else {
+	}
+	else {
 		tile_map[p_id].autotile_data.flags[p_coord] = p_flag;
 	}
 }
@@ -595,7 +666,7 @@ uint32_t TileSet::autotile_get_bitmask(int p_id, Vector2 p_coord) {
 	return tile_map[p_id].autotile_data.flags[p_coord];
 }
 
-const Map<Vector2, uint32_t> &TileSet::autotile_get_bitmask_map(int p_id) {
+const Map<Vector2, uint32_t>& TileSet::autotile_get_bitmask_map(int p_id) {
 
 	static Map<Vector2, uint32_t> dummy;
 	static Map<Vector2, uint32_t> dummy_atlas;
@@ -611,11 +682,12 @@ const Map<Vector2, uint32_t> &TileSet::autotile_get_bitmask_map(int p_id) {
 			}
 		}
 		return dummy_atlas;
-	} else
+	}
+	else
 		return tile_map[p_id].autotile_data.flags;
 }
 
-Vector2 TileSet::autotile_get_subtile_for_bitmask(int p_id, uint16_t p_bitmask, const Node *p_tilemap_node, const Vector2 &p_tile_location) {
+Vector2 TileSet::autotile_get_subtile_for_bitmask(int p_id, uint16_t p_bitmask, const Node* p_tilemap_node, const Vector2& p_tile_location) {
 
 	ERR_FAIL_COND_V(!tile_map.has(p_id), Vector2());
 	//First try to forward selection to script
@@ -636,7 +708,7 @@ Vector2 TileSet::autotile_get_subtile_for_bitmask(int p_id, uint16_t p_bitmask, 
 	uint32_t mask;
 	uint16_t mask_;
 	uint16_t mask_ignore;
-	for (Map<Vector2, uint32_t>::Element *E = tile_map[p_id].autotile_data.flags.front(); E; E = E->next()) {
+	for (Map<Vector2, uint32_t>::Element* E = tile_map[p_id].autotile_data.flags.front(); E; E = E->next()) {
 		mask = E->get();
 		if (tile_map[p_id].autotile_data.bitmask_mode == BITMASK_2X2) {
 			mask |= (BIND_IGNORE_TOP | BIND_IGNORE_LEFT | BIND_IGNORE_CENTER | BIND_IGNORE_RIGHT | BIND_IGNORE_BOTTOM);
@@ -655,13 +727,14 @@ Vector2 TileSet::autotile_get_subtile_for_bitmask(int p_id, uint16_t p_bitmask, 
 
 	if (coords.size() == 0) {
 		return autotile_get_icon_coordinate(p_id);
-	} else {
+	}
+	else {
 		uint32_t picked_value = Math::rand() % priority_sum;
 		uint32_t upper_bound;
 		uint32_t lower_bound = 0;
 		Vector2 result = coords.front()->get();
-		List<Vector2>::Element *coords_E = coords.front();
-		List<uint32_t>::Element *priorities_E = priorities.front();
+		List<Vector2>::Element* coords_E = coords.front();
+		List<uint32_t>::Element* priorities_E = priorities.front();
 		while (priorities_E) {
 			upper_bound = lower_bound + priorities_E->get();
 			if (lower_bound <= picked_value && picked_value < upper_bound) {
@@ -677,7 +750,7 @@ Vector2 TileSet::autotile_get_subtile_for_bitmask(int p_id, uint16_t p_bitmask, 
 	}
 }
 
-Vector2 TileSet::atlastile_get_subtile_by_priority(int p_id, const Node *p_tilemap_node, const Vector2 &p_tile_location) {
+Vector2 TileSet::atlastile_get_subtile_by_priority(int p_id, const Node* p_tilemap_node, const Vector2& p_tile_location) {
 
 	ERR_FAIL_COND_V(!tile_map.has(p_id), Vector2());
 	//First try to forward selection to script
@@ -702,12 +775,13 @@ Vector2 TileSet::atlastile_get_subtile_by_priority(int p_id, const Node *p_tilem
 	}
 	if (coords.size() == 0) {
 		return autotile_get_icon_coordinate(p_id);
-	} else {
+	}
+	else {
 		return coords[Math::random(0, (int)coords.size())];
 	}
 }
 
-void TileSet::tile_set_name(int p_id, const String &p_name) {
+void TileSet::tile_set_name(int p_id, const String& p_name) {
 
 	ERR_FAIL_COND(!tile_map.has(p_id));
 	tile_map[p_id].name = p_name;
@@ -727,7 +801,7 @@ void TileSet::tile_clear_shapes(int p_id) {
 	tile_map[p_id].shapes_data.clear();
 }
 
-void TileSet::tile_add_shape(int p_id, const Ref<Shape2D> &p_shape, const Transform2D &p_transform, bool p_one_way, const Vector2 &p_autotile_coord) {
+void TileSet::tile_add_shape(int p_id, const Ref<Shape2D>& p_shape, const Transform2D& p_transform, bool p_one_way, const Vector2& p_autotile_coord) {
 
 	ERR_FAIL_COND(!tile_map.has(p_id));
 
@@ -746,7 +820,7 @@ int TileSet::tile_get_shape_count(int p_id) const {
 	return tile_map[p_id].shapes_data.size();
 }
 
-void TileSet::tile_set_shape(int p_id, int p_shape_id, const Ref<Shape2D> &p_shape) {
+void TileSet::tile_set_shape(int p_id, int p_shape_id, const Ref<Shape2D>& p_shape) {
 
 	ERR_FAIL_COND(!tile_map.has(p_id));
 	ERR_FAIL_COND(p_shape_id < 0);
@@ -769,7 +843,7 @@ Ref<Shape2D> TileSet::tile_get_shape(int p_id, int p_shape_id) const {
 	return Ref<Shape2D>();
 }
 
-void TileSet::tile_set_shape_transform(int p_id, int p_shape_id, const Transform2D &p_offset) {
+void TileSet::tile_set_shape_transform(int p_id, int p_shape_id, const Transform2D& p_offset) {
 
 	ERR_FAIL_COND(!tile_map.has(p_id));
 	ERR_FAIL_COND(p_shape_id < 0);
@@ -791,7 +865,7 @@ Transform2D TileSet::tile_get_shape_transform(int p_id, int p_shape_id) const {
 	return Transform2D();
 }
 
-void TileSet::tile_set_shape_offset(int p_id, int p_shape_id, const Vector2 &p_offset) {
+void TileSet::tile_set_shape_offset(int p_id, int p_shape_id, const Vector2& p_offset) {
 	Transform2D transform = tile_get_shape_transform(p_id, p_shape_id);
 	transform.set_origin(p_offset);
 	tile_set_shape_transform(p_id, p_shape_id, transform);
@@ -845,7 +919,7 @@ float TileSet::tile_get_shape_one_way_margin(int p_id, int p_shape_id) const {
 	return 0;
 }
 
-void TileSet::tile_set_light_occluder(int p_id, const Ref<OccluderPolygon2D> &p_light_occluder) {
+void TileSet::tile_set_light_occluder(int p_id, const Ref<OccluderPolygon2D>& p_light_occluder) {
 
 	ERR_FAIL_COND(!tile_map.has(p_id));
 	tile_map[p_id].occluder = p_light_occluder;
@@ -857,29 +931,31 @@ Ref<OccluderPolygon2D> TileSet::tile_get_light_occluder(int p_id) const {
 	return tile_map[p_id].occluder;
 }
 
-void TileSet::autotile_set_light_occluder(int p_id, const Ref<OccluderPolygon2D> &p_light_occluder, const Vector2 &p_coord) {
+void TileSet::autotile_set_light_occluder(int p_id, const Ref<OccluderPolygon2D>& p_light_occluder, const Vector2& p_coord) {
 	ERR_FAIL_COND(!tile_map.has(p_id));
 	if (p_light_occluder.is_null()) {
 		if (tile_map[p_id].autotile_data.occluder_map.has(p_coord)) {
 			tile_map[p_id].autotile_data.occluder_map.erase(p_coord);
 		}
-	} else {
+	}
+	else {
 		tile_map[p_id].autotile_data.occluder_map[p_coord] = p_light_occluder;
 	}
 }
 
-Ref<OccluderPolygon2D> TileSet::autotile_get_light_occluder(int p_id, const Vector2 &p_coord) const {
+Ref<OccluderPolygon2D> TileSet::autotile_get_light_occluder(int p_id, const Vector2& p_coord) const {
 
 	ERR_FAIL_COND_V(!tile_map.has(p_id), Ref<OccluderPolygon2D>());
 
 	if (!tile_map[p_id].autotile_data.occluder_map.has(p_coord)) {
 		return Ref<OccluderPolygon2D>();
-	} else {
+	}
+	else {
 		return tile_map[p_id].autotile_data.occluder_map[p_coord];
 	}
 }
 
-void TileSet::tile_set_navigation_polygon_offset(int p_id, const Vector2 &p_offset) {
+void TileSet::tile_set_navigation_polygon_offset(int p_id, const Vector2& p_offset) {
 
 	ERR_FAIL_COND(!tile_map.has(p_id));
 	tile_map[p_id].navigation_polygon_offset = p_offset;
@@ -891,7 +967,7 @@ Vector2 TileSet::tile_get_navigation_polygon_offset(int p_id) const {
 	return tile_map[p_id].navigation_polygon_offset;
 }
 
-void TileSet::tile_set_navigation_polygon(int p_id, const Ref<NavigationPolygon> &p_navigation_polygon) {
+void TileSet::tile_set_navigation_polygon(int p_id, const Ref<NavigationPolygon>& p_navigation_polygon) {
 
 	ERR_FAIL_COND(!tile_map.has(p_id));
 	tile_map[p_id].navigation_polygon = p_navigation_polygon;
@@ -903,43 +979,45 @@ Ref<NavigationPolygon> TileSet::tile_get_navigation_polygon(int p_id) const {
 	return tile_map[p_id].navigation_polygon;
 }
 
-const Map<Vector2, Ref<OccluderPolygon2D> > &TileSet::autotile_get_light_oclusion_map(int p_id) const {
+const Map<Vector2, Ref<OccluderPolygon2D> >& TileSet::autotile_get_light_oclusion_map(int p_id) const {
 
 	static Map<Vector2, Ref<OccluderPolygon2D> > dummy;
 	ERR_FAIL_COND_V(!tile_map.has(p_id), dummy);
 	return tile_map[p_id].autotile_data.occluder_map;
 }
 
-void TileSet::autotile_set_navigation_polygon(int p_id, const Ref<NavigationPolygon> &p_navigation_polygon, const Vector2 &p_coord) {
+void TileSet::autotile_set_navigation_polygon(int p_id, const Ref<NavigationPolygon>& p_navigation_polygon, const Vector2& p_coord) {
 
 	ERR_FAIL_COND(!tile_map.has(p_id));
 	if (p_navigation_polygon.is_null()) {
 		if (tile_map[p_id].autotile_data.navpoly_map.has(p_coord)) {
 			tile_map[p_id].autotile_data.navpoly_map.erase(p_coord);
 		}
-	} else {
+	}
+	else {
 		tile_map[p_id].autotile_data.navpoly_map[p_coord] = p_navigation_polygon;
 	}
 }
 
-Ref<NavigationPolygon> TileSet::autotile_get_navigation_polygon(int p_id, const Vector2 &p_coord) const {
+Ref<NavigationPolygon> TileSet::autotile_get_navigation_polygon(int p_id, const Vector2& p_coord) const {
 
 	ERR_FAIL_COND_V(!tile_map.has(p_id), Ref<NavigationPolygon>());
 	if (!tile_map[p_id].autotile_data.navpoly_map.has(p_coord)) {
 		return Ref<NavigationPolygon>();
-	} else {
+	}
+	else {
 		return tile_map[p_id].autotile_data.navpoly_map[p_coord];
 	}
 }
 
-const Map<Vector2, Ref<NavigationPolygon> > &TileSet::autotile_get_navigation_map(int p_id) const {
+const Map<Vector2, Ref<NavigationPolygon> >& TileSet::autotile_get_navigation_map(int p_id) const {
 
 	static Map<Vector2, Ref<NavigationPolygon> > dummy;
 	ERR_FAIL_COND_V(!tile_map.has(p_id), dummy);
 	return tile_map[p_id].autotile_data.navpoly_map;
 }
 
-void TileSet::tile_set_occluder_offset(int p_id, const Vector2 &p_offset) {
+void TileSet::tile_set_occluder_offset(int p_id, const Vector2& p_offset) {
 
 	ERR_FAIL_COND(!tile_map.has(p_id));
 	tile_map[p_id].occluder_offset = p_offset;
@@ -951,7 +1029,7 @@ Vector2 TileSet::tile_get_occluder_offset(int p_id) const {
 	return tile_map[p_id].occluder_offset;
 }
 
-void TileSet::tile_set_shapes(int p_id, const Vector<ShapeData> &p_shapes) {
+void TileSet::tile_set_shapes(int p_id, const Vector<ShapeData>& p_shapes) {
 
 	ERR_FAIL_COND(!tile_map.has(p_id));
 	tile_map[p_id].shapes_data = p_shapes;
@@ -981,7 +1059,20 @@ void TileSet::tile_set_z_index(int p_id, int p_z_index) {
 	emit_changed();
 }
 
-void TileSet::_tile_set_shapes(int p_id, const Array &p_shapes) {
+Ref<TileProperties> TileSet::tile_get_properties(int p_id) const {
+
+	ERR_FAIL_COND_V(!tile_map.has(p_id), 0);
+	return tile_map[p_id].properties;
+}
+
+void TileSet::tile_set_properties(int p_id, const Ref<TileProperties>& p_properties) {
+
+	ERR_FAIL_COND(!tile_map.has(p_id));
+	tile_map[p_id].properties = p_properties;
+	emit_changed();
+}
+
+void TileSet::_tile_set_shapes(int p_id, const Array& p_shapes) {
 
 	ERR_FAIL_COND(!tile_map.has(p_id));
 	Vector<ShapeData> shapes_data;
@@ -999,13 +1090,15 @@ void TileSet::_tile_set_shapes(int p_id, const Array &p_shapes) {
 			s.shape_transform = default_transform;
 			s.one_way_collision = default_one_way;
 			s.autotile_coord = default_autotile_coord;
-		} else if (p_shapes[i].get_type() == Variant::DICTIONARY) {
+		}
+		else if (p_shapes[i].get_type() == Variant::DICTIONARY) {
 			Dictionary d = p_shapes[i];
 
 			if (d.has("shape") && d["shape"].get_type() == Variant::OBJECT) {
 				s.shape = d["shape"];
 				_decompose_convex_shape(s.shape);
-			} else
+			}
+			else
 				continue;
 
 			if (d.has("shape_transform") && d["shape_transform"].get_type() == Variant::TRANSFORM2D)
@@ -1030,7 +1123,8 @@ void TileSet::_tile_set_shapes(int p_id, const Array &p_shapes) {
 			else
 				s.autotile_coord = default_autotile_coord;
 
-		} else {
+		}
+		else {
 			ERR_CONTINUE_MSG(true, "Expected an array of objects or dictionaries for tile_set_shapes.");
 		}
 
@@ -1064,7 +1158,7 @@ Array TileSet::_get_tiles_ids() const {
 
 	Array arr;
 
-	for (Map<int, TileData>::Element *E = tile_map.front(); E; E = E->next()) {
+	for (Map<int, TileData>::Element* E = tile_map.front(); E; E = E->next()) {
 		arr.push_back(E->key());
 	}
 
@@ -1086,14 +1180,23 @@ void TileSet::_decompose_convex_shape(Ref<Shape2D> p_shape) {
 			sub_shapes.append(_convex);
 		}
 		convex->set_meta("decomposed", sub_shapes);
-	} else {
+	}
+	else {
 		convex->set_meta("decomposed", Variant());
 	}
 }
 
-void TileSet::get_tile_list(List<int> *p_tiles) const {
+void TileSet::set_meta_properties(Dictionary p_dict) {
+	meta_properties = p_dict;
+}
 
-	for (Map<int, TileData>::Element *E = tile_map.front(); E; E = E->next()) {
+Dictionary TileSet::get_meta_properties() const {
+	return meta_properties;
+}
+
+void TileSet::get_tile_list(List<int>* p_tiles) const {
+
+	for (Map<int, TileData>::Element* E = tile_map.front(); E; E = E->next()) {
 
 		p_tiles->push_back(E->key());
 	}
@@ -1108,7 +1211,8 @@ bool TileSet::is_tile_bound(int p_drawn_id, int p_neighbor_id) {
 
 	if (p_drawn_id == p_neighbor_id) {
 		return true;
-	} else if (get_script_instance() != NULL) {
+	}
+	else if (get_script_instance() != NULL) {
 		if (get_script_instance()->has_method("_is_tile_bound")) {
 			Variant ret = get_script_instance()->call("_is_tile_bound", p_drawn_id, p_neighbor_id);
 			if (ret.get_type() == Variant::BOOL) {
@@ -1135,9 +1239,9 @@ int TileSet::get_last_unused_tile_id() const {
 		return 0;
 }
 
-int TileSet::find_tile_by_name(const String &p_name) const {
+int TileSet::find_tile_by_name(const String& p_name) const {
 
-	for (Map<int, TileData>::Element *E = tile_map.front(); E; E = E->next()) {
+	for (Map<int, TileData>::Element* E = tile_map.front(); E; E = E->next()) {
 
 		if (p_name == E->get().name)
 			return E->key();
@@ -1214,12 +1318,24 @@ void TileSet::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("tile_get_occluder_offset", "id"), &TileSet::tile_get_occluder_offset);
 	ClassDB::bind_method(D_METHOD("tile_set_z_index", "id", "z_index"), &TileSet::tile_set_z_index);
 	ClassDB::bind_method(D_METHOD("tile_get_z_index", "id"), &TileSet::tile_get_z_index);
+	ClassDB::bind_method(D_METHOD("tile_set_properties", "id", "properties"), &TileSet::tile_set_properties);
+	ClassDB::bind_method(D_METHOD("tile_get_properties", "id"), &TileSet::tile_get_properties);
 
 	ClassDB::bind_method(D_METHOD("remove_tile", "id"), &TileSet::remove_tile);
 	ClassDB::bind_method(D_METHOD("clear"), &TileSet::clear);
 	ClassDB::bind_method(D_METHOD("get_last_unused_tile_id"), &TileSet::get_last_unused_tile_id);
 	ClassDB::bind_method(D_METHOD("find_tile_by_name", "name"), &TileSet::find_tile_by_name);
 	ClassDB::bind_method(D_METHOD("get_tiles_ids"), &TileSet::_get_tiles_ids);
+	ClassDB::bind_method(D_METHOD("set_tile_properties_script", "script"), &TileSet::set_tile_properties_script);
+	ClassDB::bind_method(D_METHOD("get_tile_properties_script"), &TileSet::get_tile_properties_script);
+
+	ClassDB::bind_method(D_METHOD("set_meta_properties", "dict"), &TileSet::set_meta_properties);
+	ClassDB::bind_method(D_METHOD("get_meta_properties"), &TileSet::get_meta_properties);
+
+	ADD_PROPERTY(PropertyInfo(Variant::DICTIONARY, "meta_properties", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT, "Script"), "set_meta_properties", "get_meta_properties");
+
+	ADD_GROUP("Tiles", "tiles_");
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "tiles_default_script", PROPERTY_HINT_RESOURCE_TYPE, "Script", PROPERTY_USAGE_DEFAULT, "Script"), "set_tile_properties_script", "get_tile_properties_script");
 
 	BIND_VMETHOD(MethodInfo(Variant::BOOL, "_is_tile_bound", PropertyInfo(Variant::INT, "drawn_id"), PropertyInfo(Variant::INT, "neighbor_id")));
 	BIND_VMETHOD(MethodInfo(Variant::VECTOR2, "_forward_subtile_selection", PropertyInfo(Variant::INT, "autotile_id"), PropertyInfo(Variant::INT, "bitmask"), PropertyInfo(Variant::OBJECT, "tilemap", PROPERTY_HINT_NONE, "TileMap"), PropertyInfo(Variant::VECTOR2, "tile_location")));
