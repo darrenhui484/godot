@@ -322,6 +322,8 @@ StringName ClassDB::get_parent_class(const StringName &p_class) {
 	OBJTYPE_RLOCK;
 
 	ClassInfo *ti = classes.getptr(p_class);
+	if (!ti)
+		print_line("error");
 	ERR_FAIL_COND_V(!ti, StringName());
 	return ti->inherits;
 }
