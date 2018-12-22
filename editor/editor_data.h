@@ -110,9 +110,13 @@ class EditorData {
 public:
 	struct CustomType {
 
-		String name;
+		StringName name;
+		StringName base;
 		Ref<Script> script;
 		Ref<Texture> icon;
+
+		CustomType(StringName p_name = "", StringName p_base = "", const Ref<Script> &p_script = NULL, const Ref<Texture> &p_icon = NULL)
+			: name(p_name), base(p_base), script(p_script), icon(p_icon) {}
 	};
 
 	struct EditedScene {
@@ -134,7 +138,8 @@ private:
 		String name;
 		Variant value;
 	};
-	Map<String, Vector<CustomType> > custom_types;
+	HashMap<StringName, CustomType> custom_types;
+	HashMap<StringName, StringName> custom_type_path_map;
 
 	List<PropertyData> clipboard;
 	UndoRedo undo_redo;
@@ -178,9 +183,18 @@ public:
 	void restore_editor_global_states();
 
 	void add_custom_type(const String &p_type, const String &p_inherits, const Ref<Script> &p_script, const Ref<Texture> &p_icon);
-	Object *instance_custom_type(const String &p_type, const String &p_inherits);
+	Object *instance_custom_type(const StringName &p_type);
 	void remove_custom_type(const String &p_type);
-	const Map<String, Vector<CustomType> > &get_custom_types() const { return custom_types; }
+	bool custom_type_is_parent(const String &p_class, const String &p_inherits) const;
+	StringName custom_type_get_base(const StringName &p_type) const;
+	Ref<Texture> custom_type_get_icon(const StringName &p_type) const;
+	void get_custom_type_list(List<StringName> *p_list) const;
+	bool custom_type_exists(const StringName &p_type) const;
+	//const HashMap<StringName, CustomType> &get_custom_types() const { return custom_types; }
+	StringName get_custom_type_name(const Ref<Script> &p_script) const;
+	void custom_type_get_inheritors_of_type(const StringName &p_type, List<StringName> *p_list) const;
+
+	bool script_inherits(const Ref<Script> &p_script, const Ref<Script> &p_inherits) const;
 
 	int add_edited_scene(int p_at_pos);
 	void move_edited_scene_index(int p_idx, int p_to_idx);

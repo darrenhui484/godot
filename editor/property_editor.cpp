@@ -890,12 +890,6 @@ bool CustomPropertyEditor::edit(Object *p_owner, const String &p_name, Variant::
 			} else if (hint_text != "") {
 				int idx = 0;
 
-				Vector<EditorData::CustomType> custom_resources;
-
-				if (EditorNode::get_editor_data().get_custom_types().has("Resource")) {
-					custom_resources = EditorNode::get_editor_data().get_custom_types()["Resource"];
-				}
-
 				for (int i = 0; i < hint_text.get_slice_count(","); i++) {
 
 					String base = hint_text.get_slice(",", i);
@@ -904,10 +898,7 @@ bool CustomPropertyEditor::edit(Object *p_owner, const String &p_name, Variant::
 					valid_inheritors.insert(base);
 					List<StringName> inheritors;
 					ClassDB::get_inheriters_from_class(base.strip_edges(), &inheritors);
-
-					for (int j = 0; j < custom_resources.size(); j++) {
-						inheritors.push_back(custom_resources[j].name);
-					}
+					EditorNode::get_editor_data().custom_type_get_inheritors_of_type(base.strip_edges(), &inheritors);
 
 					List<StringName>::Element *E = inheritors.front();
 					while (E) {
@@ -918,20 +909,9 @@ bool CustomPropertyEditor::edit(Object *p_owner, const String &p_name, Variant::
 					for (Set<String>::Element *j = valid_inheritors.front(); j; j = j->next()) {
 						String t = j->get();
 
-						bool is_custom_resource = false;
-						Ref<Texture> icon;
-						if (!custom_resources.empty()) {
-							for (int k = 0; k < custom_resources.size(); k++) {
-								if (custom_resources[k].name == t) {
-									is_custom_resource = true;
-									if (custom_resources[k].icon.is_valid())
-										icon = custom_resources[k].icon;
-									break;
-								}
-							}
-						}
+						Ref<Texture> icon = EditorNode::get_singleton()->get_class_icon(t);
 
-						if (!is_custom_resource && !ClassDB::can_instance(t))
+						if (!EditorNode::get_editor_data().custom_type_exists(t) && !ClassDB::can_instance(t))
 							continue;
 
 						inheritors_array.push_back(t);

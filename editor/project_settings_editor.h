@@ -35,6 +35,7 @@
 #include "editor/editor_autoload_settings.h"
 #include "editor/editor_data.h"
 #include "editor/editor_plugin_settings.h"
+#include "editor/editor_custom_type_settings.h"
 #include "editor/editor_sectioned_inspector.h"
 #include "scene/gui/dialogs.h"
 #include "scene/gui/tab_container.h"
@@ -44,8 +45,6 @@ class ProjectSettingsEditor : public AcceptDialog {
 	GDCLASS(ProjectSettingsEditor, AcceptDialog);
 
 	enum InputType {
-		INPUT_KEY,
-		INPUT_JOY_BUTTON,
 		INPUT_JOY_MOTION,
 		INPUT_MOUSE_BUTTON
 	};
@@ -110,6 +109,8 @@ class ProjectSettingsEditor : public AcceptDialog {
 	EditorAutoloadSettings *autoload_settings;
 
 	EditorPluginSettings *plugin_settings;
+
+	EditorCustomTypeSettings *custom_type_settings;
 
 	void _item_selected(const String &);
 	void _item_adds(String);
@@ -189,6 +190,7 @@ public:
 	void update_plugins();
 
 	EditorAutoloadSettings *get_autoload_settings() { return autoload_settings; }
+	EditorCustomTypeSettings *get_custom_type_settings() { return custom_type_settings; }
 
 	TabContainer *get_tabs();
 

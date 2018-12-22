@@ -3284,19 +3284,8 @@ Ref<Texture> EditorNode::get_object_icon(const Object *p_object, const String &p
 		if (icon_path.length())
 			return ResourceLoader::load(icon_path);
 
-		// should probably be deprecated in 4.x
-		StringName base = script->get_instance_base_type();
-		if (base != StringName()) {
-			const Map<String, Vector<EditorData::CustomType> > &p_map = EditorNode::get_editor_data().get_custom_types();
-			for (const Map<String, Vector<EditorData::CustomType> >::Element *E = p_map.front(); E; E = E->next()) {
-				const Vector<EditorData::CustomType> &ct = E->value();
-				for (int i = 0; i < ct.size(); ++i) {
-					if (ct[i].name == base && ct[i].icon.is_valid()) {
-						return ct[i].icon;
-					}
-				}
-			}
-		}
+		StringName type = get_editor_data().get_custom_type_name(script);
+		return get_editor_data().custom_type_get_icon(type);
 	}
 
 	// should probably be deprecated in 4.x
@@ -3319,6 +3308,33 @@ Ref<Texture> EditorNode::get_class_icon(const String &p_class, const String &p_f
 		return gui_base->get_icon(p_class, "EditorIcons");
 	}
 
+	EditorCustomTypeSettings *custom_type_settings = project_settings->get_custom_type_settings();
+	if (custom_type_settings->custom_type_exists(p_class)) {
+		String scene_path = custom_type_settings->custom_type_get_path(p_class);
+		if (scene_path.empty() || !FileAccess::exists(scene_path))
+			return NULL;
+		Ref<PackedScene> scene = ResourceLoader::load(scene_path, "PackedScene");
+		if (scene.is_null())
+			return NULL;
+		Ref<SceneState> state = scene->get_state();
+		if (state.is_null())
+			return NULL;
+		for (int i = 0; i < state->get_node_property_count(0); i++) {
+			String name = state->get_node_property_name(0, i);
+			if ("script" == name) {
+				Ref<Script> script = state->get_node_property_value(0, i);
+				while (script.is_valid()) {
+					String script_name = script->get_language()->get_global_class_name(script->get_path());
+					if (ScriptServer::is_global_class(script_name))
+						return get_class_icon(script_name);
+					script = script->get_base_script();
+				}
+				break;
+			}
+		}
+		return get_class_icon(state->get_node_type(0));
+	}
+
 	if (ScriptServer::is_global_class(p_class)) {
 		String icon_path = EditorNode::get_editor_data().script_class_get_icon_path(p_class);
 		RES icon;
@@ -3331,16 +3347,11 @@ Ref<Texture> EditorNode::get_class_icon(const String &p_class, const String &p_f
 		return icon;
 	}
 
-	const Map<String, Vector<EditorData::CustomType> > &p_map = EditorNode::get_editor_data().get_custom_types();
-	for (const Map<String, Vector<EditorData::CustomType> >::Element *E = p_map.front(); E; E = E->next()) {
-		const Vector<EditorData::CustomType> &ct = E->value();
-		for (int i = 0; i < ct.size(); ++i) {
-			if (ct[i].name == p_class) {
-				if (ct[i].icon.is_valid()) {
-					return ct[i].icon;
-				}
-			}
-		}
+	if (get_editor_data().custom_type_exists(p_class)) {
+		RES icon = get_editor_data().custom_type_get_icon(p_class);
+		if (!icon.is_valid())
+			icon = gui_base->get_icon(get_editor_data().custom_type_get_base(p_class));
+		return icon;
 	}
 
 	if (p_fallback.length() && gui_base->has_icon(p_fallback, "EditorIcons"))
