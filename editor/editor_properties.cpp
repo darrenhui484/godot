@@ -2217,10 +2217,6 @@ void EditorPropertyResource::_update_menu_items() {
 
 		Vector<EditorData::CustomType> custom_resources;
 
-		if (EditorNode::get_editor_data().get_custom_types().has("Resource")) {
-			custom_resources = EditorNode::get_editor_data().get_custom_types()["Resource"];
-		}
-
 		for (int i = 0; i < base_type.get_slice_count(","); i++) {
 
 			String base = base_type.get_slice(",", i);
@@ -2229,10 +2225,7 @@ void EditorPropertyResource::_update_menu_items() {
 			valid_inheritors.insert(base);
 			List<StringName> inheritors;
 			ClassDB::get_inheriters_from_class(base.strip_edges(), &inheritors);
-
-			for (int i = 0; i < custom_resources.size(); i++) {
-				inheritors.push_back(custom_resources[i].name);
-			}
+			EditorNode::get_editor_data().custom_type_get_inheritors_of_type(base.strip_edges(), &inheritors);
 
 			List<StringName>::Element *E = inheritors.front();
 			while (E) {
@@ -2243,20 +2236,9 @@ void EditorPropertyResource::_update_menu_items() {
 			for (Set<String>::Element *E = valid_inheritors.front(); E; E = E->next()) {
 				String t = E->get();
 
-				bool is_custom_resource = false;
-				Ref<Texture> icon;
-				if (!custom_resources.empty()) {
-					for (int i = 0; i < custom_resources.size(); i++) {
-						if (custom_resources[i].name == t) {
-							is_custom_resource = true;
-							if (custom_resources[i].icon.is_valid())
-								icon = custom_resources[i].icon;
-							break;
-						}
-					}
-				}
+				Ref<Texture> icon = EditorNode::get_singleton()->get_class_icon(t);
 
-				if (!is_custom_resource && !ClassDB::can_instance(t))
+				if (!EditorNode::get_editor_data().custom_type_exists(t) && !ClassDB::can_instance(t))
 					continue;
 
 				inheritors_array.push_back(t);

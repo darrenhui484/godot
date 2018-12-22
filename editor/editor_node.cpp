@@ -3189,19 +3189,8 @@ Ref<Texture> EditorNode::get_object_icon(const Object *p_object, const String &p
 		if (icon_path.length())
 			return ResourceLoader::load(icon_path);
 
-		// should probably be deprecated in 4.x
-		StringName base = script->get_instance_base_type();
-		if (base != StringName()) {
-			const Map<String, Vector<EditorData::CustomType> > &p_map = EditorNode::get_editor_data().get_custom_types();
-			for (const Map<String, Vector<EditorData::CustomType> >::Element *E = p_map.front(); E; E = E->next()) {
-				const Vector<EditorData::CustomType> &ct = E->value();
-				for (int i = 0; i < ct.size(); ++i) {
-					if (ct[i].name == base && ct[i].icon.is_valid()) {
-						return ct[i].icon;
-					}
-				}
-			}
-		}
+		StringName type = get_editor_data().get_custom_type_name(script);
+		return get_editor_data().custom_type_get_icon(type);
 	}
 
 	// should probably be deprecated in 4.x
