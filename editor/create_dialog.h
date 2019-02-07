@@ -59,6 +59,10 @@ class CreateDialog : public ConfirmationDialog {
 	EditorHelpBit *help_bit;
 	List<StringName> type_list;
 	Set<StringName> type_blacklist;
+	VBoxContainer *dynamic_search_vb;
+	HBoxContainer *search_hb;
+	CheckButton *toggle_2d;
+	CheckButton *toggle_3d;
 
 	void _item_selected();
 
@@ -77,6 +81,10 @@ class CreateDialog : public ConfirmationDialog {
 
 	void _confirmed();
 	void _text_changed(const String &p_newtext);
+
+	void _2d_toggled(bool p_pressed);
+	void _3d_toggled(bool p_pressed);
+	void _update_dynamic_search_gui();
 
 	Ref<Texture> _get_editor_icon(const String &p_type) const;
 

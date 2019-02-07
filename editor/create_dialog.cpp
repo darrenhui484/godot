@@ -37,6 +37,7 @@
 #include "editor_node.h"
 #include "editor_settings.h"
 #include "scene/gui/box_container.h"
+#include "scene/gui/margin_container.h"
 
 void CreateDialog::popup_create(bool p_dont_clear, bool p_replace_mode) {
 
@@ -141,6 +142,59 @@ void CreateDialog::_text_changed(const String &p_newtext) {
 	_update_search();
 }
 
+void CreateDialog::_2d_toggled(bool p_pressed) {
+	ProjectSettings::get_singleton()->set_setting("_create_dialog_hide_2d", !p_pressed);
+	ProjectSettings::get_singleton()->save();
+	_update_search();
+}
+
+void CreateDialog::_3d_toggled(bool p_pressed) {
+	ProjectSettings::get_singleton()->set_setting("_create_dialog_hide_3d", !p_pressed);
+	ProjectSettings::get_singleton()->save();
+	_update_search();
+}
+
+void CreateDialog::_update_dynamic_search_gui() {
+
+	if (search_hb && search_hb->get_parent()) {
+		search_hb->get_parent()->remove_child(search_hb);
+	}
+	for (int i = 0; i < dynamic_search_vb->get_child_count(); ++i) {
+		memdelete(dynamic_search_vb->get_child(i));
+	}
+
+	if (base_type == "Node") {
+		print_line("CreateDialog: creating 'Node' case");
+		HBoxContainer *search_settings = memnew(HBoxContainer);
+		search_settings->set_h_size_flags(SIZE_EXPAND_FILL);
+		dynamic_search_vb->add_child(search_settings);
+		Label *l = memnew(Label);
+		l->set_text(TTR("Search:"));
+		search_settings->add_child(l);
+		Control *c = memnew(Control);
+		c->set_h_size_flags(SIZE_EXPAND_FILL);
+		search_settings->add_child(c);
+		toggle_2d = memnew(CheckButton);
+		toggle_2d->set_text("2D ");
+		toggle_2d->connect("toggled", this, "_2d_toggled");
+		toggle_2d->set_pressed(!GLOBAL_GET("_create_dialog_hide_2d"));
+		search_settings->add_child(toggle_2d);
+		toggle_3d = memnew(CheckButton);
+		toggle_3d->set_text("3D ");
+		toggle_3d->connect("toggled", this, "_3d_toggled");
+		toggle_3d->set_pressed(!GLOBAL_GET("_create_dialog_hide_3d"));
+		search_settings->add_child(toggle_3d);
+
+		MarginContainer *mc = memnew(MarginContainer);
+		mc->add_constant_override("margin_left", 0);
+		mc->add_child(search_hb);
+		dynamic_search_vb->add_child(mc);
+	} else {
+		print_line("CreateDialog: Not handling 'Node' case");
+		dynamic_search_vb->add_margin_child(TTR("Search:"), search_hb);
+	}
+}
+
 void CreateDialog::_sbox_input(const Ref<InputEvent> &p_ie) {
 
 	Ref<InputEventKey> k = p_ie;
@@ -208,6 +262,7 @@ void CreateDialog::add_type(const String &p_type, HashMap<String, TreeItem *> &p
 	bool can_instance = ClassDB::can_instance(cpp_base);
 
 	TreeItem *item = search_options->create_item(parent);
+	// metadata is to show that it's a user-defined type
 	if (cpp_type) {
 		item->set_text(0, p_type);
 	} else if (is_script_class) {
@@ -307,11 +362,27 @@ void CreateDialog::_update_search() {
 		String type = I->get();
 		bool cpp_type = ClassDB::class_exists(type);
 
+		String cpp_name;
+		if (cpp_type)
+			cpp_name = type;
+		else {
+			if (ScriptServer::is_global_class(type))
+				cpp_name = ScriptServer::get_global_class_base(type);
+			else if (EditorNode::get_editor_data().is_custom_type(type)) {
+				cpp_name = EditorNode::get_editor_data().custom_type_get_base(type);
+			}
+		}
+
 		if (base_type == "Node" && type.begins_with("Editor"))
 			continue; // do not show editor nodes
 
 		if (cpp_type && !ClassDB::can_instance(type))
 			continue; // can't create what can't be instanced
+
+		if (GLOBAL_GET("_create_dialog_hide_2d") && ClassDB::is_parent_class(cpp_name, "Node2D"))
+			continue;
+		if (GLOBAL_GET("_create_dialog_hide_3d") && ClassDB::is_parent_class(cpp_name, "Spatial"))
+			continue;
 
 		bool skip = false;
 		if (cpp_type) {
@@ -458,6 +529,7 @@ void CreateDialog::set_base_type(const String &p_base) {
 	else
 		set_title(vformat(TTR("Create New %s"), p_base));
 
+	_update_dynamic_search_gui();
 	_update_search();
 }
 
@@ -705,6 +777,8 @@ void CreateDialog::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_history_activated"), &CreateDialog::_history_activated);
 	ClassDB::bind_method(D_METHOD("_favorite_activated"), &CreateDialog::_favorite_activated);
 	ClassDB::bind_method(D_METHOD("_save_and_update_favorite_list"), &CreateDialog::_save_and_update_favorite_list);
+	ClassDB::bind_method(D_METHOD("_2d_toggled"), &CreateDialog::_2d_toggled);
+	ClassDB::bind_method(D_METHOD("_3d_toggled"), &CreateDialog::_3d_toggled);
 
 	ClassDB::bind_method("get_drag_data_fw", &CreateDialog::get_drag_data_fw);
 	ClassDB::bind_method("can_drop_data_fw", &CreateDialog::can_drop_data_fw);
@@ -755,7 +829,8 @@ CreateDialog::CreateDialog() {
 	hsc->add_child(vbc);
 	vbc->set_custom_minimum_size(Size2(300, 0) * EDSCALE);
 	vbc->set_h_size_flags(SIZE_EXPAND_FILL);
-	HBoxContainer *search_hb = memnew(HBoxContainer);
+
+	search_hb = memnew(HBoxContainer);
 	search_box = memnew(LineEdit);
 	search_box->set_h_size_flags(SIZE_EXPAND_FILL);
 	search_hb->add_child(search_box);
@@ -764,9 +839,13 @@ CreateDialog::CreateDialog() {
 	favorite->set_toggle_mode(true);
 	search_hb->add_child(favorite);
 	favorite->connect("pressed", this, "_favorite_toggled");
-	vbc->add_margin_child(TTR("Search:"), search_hb);
 	search_box->connect("text_changed", this, "_text_changed");
 	search_box->connect("gui_input", this, "_sbox_input");
+
+	print_line("CreateDialog: base_type = " + base_type);
+	dynamic_search_vb = memnew(VBoxContainer);
+	vbc->add_child(dynamic_search_vb);
+
 	search_options = memnew(Tree);
 	vbc->add_margin_child(TTR("Matches:"), search_options, true);
 	get_ok()->set_disabled(true);
@@ -785,4 +864,6 @@ CreateDialog::CreateDialog() {
 	type_blacklist.insert("ScriptCreateDialog"); // This is an exposed editor Node that doesn't have an Editor prefix.
 
 	EDITOR_DEF("interface/editors/derive_script_globals_by_name", true);
+	GLOBAL_DEF("_create_dialog_hide_2d", false);
+	GLOBAL_DEF("_create_dialog_hide_3d", false);
 }
