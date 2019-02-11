@@ -155,44 +155,7 @@ void CreateDialog::_3d_toggled(bool p_pressed) {
 }
 
 void CreateDialog::_update_dynamic_search_gui() {
-
-	if (search_hb && search_hb->get_parent()) {
-		search_hb->get_parent()->remove_child(search_hb);
-	}
-	for (int i = 0; i < dynamic_search_vb->get_child_count(); ++i) {
-		memdelete(dynamic_search_vb->get_child(i));
-	}
-
-	if (base_type == "Node") {
-		print_line("CreateDialog: creating 'Node' case");
-		HBoxContainer *search_settings = memnew(HBoxContainer);
-		search_settings->set_h_size_flags(SIZE_EXPAND_FILL);
-		dynamic_search_vb->add_child(search_settings);
-		Label *l = memnew(Label);
-		l->set_text(TTR("Search:"));
-		search_settings->add_child(l);
-		Control *c = memnew(Control);
-		c->set_h_size_flags(SIZE_EXPAND_FILL);
-		search_settings->add_child(c);
-		toggle_2d = memnew(CheckButton);
-		toggle_2d->set_text("2D ");
-		toggle_2d->connect("toggled", this, "_2d_toggled");
-		toggle_2d->set_pressed(!GLOBAL_GET("_create_dialog_hide_2d"));
-		search_settings->add_child(toggle_2d);
-		toggle_3d = memnew(CheckButton);
-		toggle_3d->set_text("3D ");
-		toggle_3d->connect("toggled", this, "_3d_toggled");
-		toggle_3d->set_pressed(!GLOBAL_GET("_create_dialog_hide_3d"));
-		search_settings->add_child(toggle_3d);
-
-		MarginContainer *mc = memnew(MarginContainer);
-		mc->add_constant_override("margin_left", 0);
-		mc->add_child(search_hb);
-		dynamic_search_vb->add_child(mc);
-	} else {
-		print_line("CreateDialog: Not handling 'Node' case");
-		dynamic_search_vb->add_margin_child(TTR("Search:"), search_hb);
-	}
+	search_filters_button->set_visible(!search_filters_button->is_visible());
 }
 
 void CreateDialog::_sbox_input(const Ref<InputEvent> &p_ie) {
@@ -603,6 +566,28 @@ void CreateDialog::_item_selected() {
 	get_ok()->set_disabled(false);
 }
 
+void CreateDialog::_search_filter_selected(int p_id) {
+	search_filters->toggle_item_checked(p_id);
+
+	switch (p_id) {
+	case CREATE_FILTER_GUI:
+		GLOBAL_DEF("_create_dialog_hide_gui", !GLOBAL_GET("_create_dialog_hide_gui"));
+		break;
+	case CREATE_FILTER_2D:
+		GLOBAL_DEF("_create_dialog_hide_2d", !GLOBAL_GET("_create_dialog_hide_2d"));
+		break;
+	case CREATE_FILTER_3D:
+		GLOBAL_DEF("_create_dialog_hide_3d", !GLOBAL_GET("_create_dialog_hide_3d"));
+		break;
+	case CREATE_FILTER_CUSTOM:
+		GLOBAL_DEF("_create_dialog_hide_custom", !GLOBAL_GET("_create_dialog_hide_custom"));
+		break;
+	case CREATE_FILTER_OTHER:
+		GLOBAL_DEF("_create_dialog_hide_other", !GLOBAL_GET("_create_dialog_hide_other"));
+		break;
+	}
+}
+
 void CreateDialog::_favorite_toggled() {
 
 	TreeItem *item = search_options->get_selected();
@@ -842,9 +827,23 @@ CreateDialog::CreateDialog() {
 	search_box->connect("text_changed", this, "_text_changed");
 	search_box->connect("gui_input", this, "_sbox_input");
 
-	print_line("CreateDialog: base_type = " + base_type);
-	dynamic_search_vb = memnew(VBoxContainer);
-	vbc->add_child(dynamic_search_vb);
+	Button *search_filters_button = memnew(Button);
+	search_filters_button->set_flat(true);
+	search_filters_button->set_icon(get_icon("AnimationFilter", "EditorIcons"));
+	search_filters = memnew(PopupMenu);
+	Vector<Variant> v;
+	v.push_back(true);
+	search_filters_button->connect("pressed", search_filters, "set_visible", v, CONNECT_ONESHOT);
+	search_filters->set_hide_on_checkable_item_selection(false);
+	search_filters->connect("id_pressed", this, "_search_filter_selected");
+	search_filters->add_icon_check_item(EditorNode::get_singleton()->get_class_icon("Control"), TTR("User Interface"), 1);
+	search_filters->add_icon_check_item(EditorNode::get_singleton()->get_class_icon("Node2D"), TTR("2D"), 2);
+	search_filters->add_icon_check_item(EditorNode::get_singleton()->get_class_icon("Spatial"), TTR("3D"), 3);
+	search_filters->add_icon_check_item(EditorNode::get_singleton()->get_class_icon("Script"), TTR("Custom"), 4);
+	search_filters->add_icon_check_item(EditorNode::get_singleton()->get_class_icon("Node"), TTR("Other"), 5);
+	search_filters_button->add_child(search_filters);
+
+	vbc->add_margin_child(TTR("Search:"), search_hb);
 
 	search_options = memnew(Tree);
 	vbc->add_margin_child(TTR("Matches:"), search_options, true);
@@ -864,6 +863,9 @@ CreateDialog::CreateDialog() {
 	type_blacklist.insert("ScriptCreateDialog"); // This is an exposed editor Node that doesn't have an Editor prefix.
 
 	EDITOR_DEF("interface/editors/derive_script_globals_by_name", true);
+	GLOBAL_DEF("_create_dialog_hide_gui", false);
 	GLOBAL_DEF("_create_dialog_hide_2d", false);
 	GLOBAL_DEF("_create_dialog_hide_3d", false);
+	GLOBAL_DEF("_create_dialog_hide_custom", false);
+	GLOBAL_DEF("_create_dialog_hide_other", false);
 }

@@ -44,7 +44,15 @@
 
 class CreateDialog : public ConfirmationDialog {
 
-	GDCLASS(CreateDialog, ConfirmationDialog)
+	GDCLASS(CreateDialog, ConfirmationDialog);
+
+	enum {
+		CREATE_FILTER_GUI,
+		CREATE_FILTER_2D,
+		CREATE_FILTER_3D,
+		CREATE_FILTER_CUSTOM,
+		CREATE_FILTER_OTHER,
+	};
 
 	Vector<String> favorite_list;
 	Tree *favorites;
@@ -53,18 +61,18 @@ class CreateDialog : public ConfirmationDialog {
 	Button *favorite;
 	LineEdit *search_box;
 	Tree *search_options;
+	HBoxContainer *search_hb;
+	Button *search_filters_button;
+	PopupMenu *search_filters;
 	bool is_replace_mode;
 	String base_type;
 	String preferred_search_result_type;
 	EditorHelpBit *help_bit;
 	List<StringName> type_list;
 	Set<StringName> type_blacklist;
-	VBoxContainer *dynamic_search_vb;
-	HBoxContainer *search_hb;
-	CheckButton *toggle_2d;
-	CheckButton *toggle_3d;
 
 	void _item_selected();
+	void _search_filter_selected(int p_id);
 
 	void _update_search();
 	void _update_favorite_list();
