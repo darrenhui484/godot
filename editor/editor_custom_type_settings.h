@@ -85,7 +85,7 @@ protected:
 
 public:
 	void update_custom_types();
-	void custom_type_add(const String &p_name, const String &p_path);
+	void custom_type_add(const String &p_name, const String &p_path, const String &p_icon_path = "");
 	void custom_type_remove(const String &p_name);
 
 	void set_template_name(const String &p_name);

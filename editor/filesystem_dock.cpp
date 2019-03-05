@@ -1575,20 +1575,20 @@ void FileSystemDock::_file_option(int p_option, const Vector<String> p_selected)
 				duplicate_dialog_text->grab_focus();
 			}
 		} break;
-		case FILE_SCENE_TEMPLATE: {
+		case FILE_CUSTOM_TYPE: {
 			int idx = files->get_current();
 			if (idx < 0 || idx >= files->get_item_count())
 				break;
 			ProjectSettingsEditor *ps = EditorNode::get_singleton()->get_project_settings();
 			ps->popup_project_settings();
 			TabContainer *tabs = ps->get_tabs();
-			EditorSceneTemplateSettings *scene_templates = Object::cast_to<EditorSceneTemplateSettings>(tabs->get_node(NodePath("SceneTemplates")));
-			if (!scene_templates)
+			EditorCustomTypeSettings *custom_types = Object::cast_to<EditorCustomTypeSettings>(tabs->get_node(NodePath("CustomTypes")));
+			if (!custom_types)
 				return;
 			String path = files->get_item_metadata(idx);
-			tabs->set_current_tab(scene_templates->get_index());
-			scene_templates->set_template_path(path);
-			scene_templates->get_name_line_edit()->grab_focus();
+			tabs->set_current_tab(custom_types->get_index());
+			custom_types->set_template_path(path);
+			custom_types->get_name_line_edit()->grab_focus();
 		} break;
 		case FILE_INFO: {
 
@@ -2028,7 +2028,7 @@ void FileSystemDock::_file_and_folders_fill_popup(PopupMenu *p_popup, Vector<Str
 			p_popup->add_item(TTR("Open Scene(s)"), FILE_OPEN);
 			p_popup->add_item(TTR("Instance"), FILE_INSTANCE);
 			if (filenames.size() == 1) {
-				p_popup->add_item(TTR("Create Scene Template..."), FILE_SCENE_TEMPLATE);
+				p_popup->add_item(TTR("Create Scene Template..."), FILE_CUSTOM_TYPE);
 			}
 			p_popup->add_separator();
 		}

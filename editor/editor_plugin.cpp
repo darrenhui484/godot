@@ -38,6 +38,7 @@
 #include "plugins/spatial_editor_plugin.h"
 #include "scene/3d/camera.h"
 #include "scene/gui/popup_menu.h"
+#include "scene/resources/packed_scene.h"
 #include "servers/visual_server.h"
 
 Array EditorInterface::_make_mesh_previews(const Array &p_meshes, int p_preview_size) {
@@ -288,14 +289,28 @@ EditorInterface::EditorInterface() {
 }
 
 ///////////////////////////////////////////
-void EditorPlugin::add_custom_type(const String &p_type, const String &p_base, const Ref<Script> &p_script, const Ref<Texture> &p_icon) {
+void EditorPlugin::add_custom_type(const String &p_type, const String &p_base, const RES &p_script_or_scene, const Ref<Texture> &p_icon) {
 
-	EditorNode::get_editor_data().add_custom_type(p_type, p_base, p_script, p_icon);
+	ERR_FAIL_COND(p_script_or_scene.is_null());
+	String res_type = p_script_or_scene->get_class();
+	ERR_FAIL_COND(!(res_type != "Script" || res_type != "PackedScene"));
+	EditorNode::get_singleton()->get_project_settings()->get_custom_type_settings()->custom_type_add(p_type, p_script_or_scene->get_path(), p_icon.is_valid() ? p_icon->get_path() : "");
+}
+
+void EditorPlugin::add_custom_script(const String &p_type, const String &p_base, const Ref<Script> &p_script, const Ref<Texture> &p_icon) {
+
+	ERR_FAIL_COND(p_script.is_null());
+	EditorNode::get_singleton()->get_project_settings()->get_custom_type_settings()->custom_type_add(p_type, p_script->get_path(), p_icon.is_valid() ? p_icon->get_path() : "");
+}
+
+void EditorPlugin::add_custom_scene(const String &p_type, const String &p_base, const Ref<PackedScene> &p_scene, const Ref<Texture> &p_icon) {
+
+	ERR_FAIL_COND(p_scene.is_null());
+	EditorNode::get_singleton()->get_project_settings()->get_custom_type_settings()->custom_type_add(p_type, p_scene->get_path(), p_icon.is_valid() ? p_icon->get_path() : "");
 }
 
 void EditorPlugin::remove_custom_type(const String &p_type) {
-
-	EditorNode::get_editor_data().remove_custom_type(p_type);
+	EditorNode::get_singleton()->get_project_settings()->get_custom_type_settings()->custom_type_remove(p_type);
 }
 
 void EditorPlugin::add_autoload_singleton(const String &p_name, const String &p_path) {
@@ -472,14 +487,6 @@ void EditorPlugin::set_force_draw_over_forwarding_enabled() {
 	force_draw_over_forwarding_enabled = true;
 	EditorPluginList *always_draw_over_forwarding_list = EditorNode::get_singleton()->get_editor_plugins_force_over();
 	always_draw_over_forwarding_list->add_plugin(this);
-}
-
-void EditorPlugin::scene_template_add(const String &p_name, const String &p_path) {
-	EditorNode::get_singleton()->get_project_settings()->get_scene_template_settings()->scene_template_add(p_name, p_path);
-}
-
-void EditorPlugin::scene_template_remove(const String &p_name) {
-	EditorNode::get_singleton()->get_project_settings()->get_scene_template_settings()->scene_template_remove(p_name);
 }
 
 void EditorPlugin::notify_scene_changed(const Node *scn_root) {
@@ -799,10 +806,12 @@ void EditorPlugin::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("add_tool_menu_item", "name", "handler", "callback", "ud"), &EditorPlugin::add_tool_menu_item, DEFVAL(Variant()));
 	ClassDB::bind_method(D_METHOD("add_tool_submenu_item", "name", "submenu"), &EditorPlugin::add_tool_submenu_item);
 	ClassDB::bind_method(D_METHOD("remove_tool_menu_item", "name"), &EditorPlugin::remove_tool_menu_item);
-	ClassDB::bind_method(D_METHOD("add_custom_type", "type", "base", "script", "icon"), &EditorPlugin::add_custom_type);
+	ClassDB::bind_method(D_METHOD("add_custom_type", "type", "base", "script_or_scene", "icon"), &EditorPlugin::add_custom_type);
+	ClassDB::bind_method(D_METHOD("add_custom_script", "type", "base", "script", "icon"), &EditorPlugin::add_custom_script);
+	ClassDB::bind_method(D_METHOD("add_custom_scene", "type", "base", "scene", "icon"), &EditorPlugin::add_custom_scene);
 	ClassDB::bind_method(D_METHOD("remove_custom_type", "type"), &EditorPlugin::remove_custom_type);
-	ClassDB::bind_method(D_METHOD("scene_template_add", "name", "path"), &EditorPlugin::scene_template_add);
-	ClassDB::bind_method(D_METHOD("scene_template_remove", "name"), &EditorPlugin::scene_template_remove);
+	//ClassDB::bind_method(D_METHOD("custom_type_add", "name", "path"), &EditorPlugin::custom_type_add);
+	//ClassDB::bind_method(D_METHOD("custom_type_remove", "name"), &EditorPlugin::custom_type_remove);
 
 	ClassDB::bind_method(D_METHOD("add_autoload_singleton", "name", "path"), &EditorPlugin::add_autoload_singleton);
 	ClassDB::bind_method(D_METHOD("remove_autoload_singleton", "name"), &EditorPlugin::remove_autoload_singleton);

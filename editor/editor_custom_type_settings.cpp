@@ -353,7 +353,7 @@ void EditorCustomTypeSettings::update_custom_types() {
 	updating_custom_type = false;
 }
 
-void EditorCustomTypeSettings::custom_type_add(const String &p_name, const String &p_path) {
+void EditorCustomTypeSettings::custom_type_add(const String &p_name, const String &p_path, const String &p_icon_path) {
 
 	String name = p_name;
 
@@ -372,6 +372,19 @@ void EditorCustomTypeSettings::custom_type_add(const String &p_name, const Strin
 	if (!path.begins_with("res://")) {
 		EditorNode::get_singleton()->show_warning(TTR("Invalid Path.") + "\n" + TTR("Not in resource path."));
 		return;
+	}
+
+	String icon_path = p_icon_path;
+	if (icon_path.length()) {
+		if (!FileAccess::exists(icon_path)) {
+			EditorNode::get_singleton()->show_warning(TTR("Invalid Icon Path.") + "\n" + TTR("File does not exist."));
+			return;
+		}
+
+		if (!icon_path.begins_with("res://")) {
+			EditorNode::get_singleton()->show_warning(TTR("Invalid Icon Path.") + "\n" + TTR("Not in resource path."));
+			return;
+		}
 	}
 
 	UndoRedo *undo_redo = EditorNode::get_singleton()->get_undo_redo();
@@ -448,10 +461,6 @@ void EditorCustomTypeSettings::_bind_methods() {
 	ClassDB::bind_method("_custom_type_file_callback", &EditorCustomTypeSettings::_custom_type_file_callback);
 	ClassDB::bind_method("_custom_type_activated", &EditorCustomTypeSettings::_custom_type_activated);
 	ClassDB::bind_method("_custom_type_open", &EditorCustomTypeSettings::_custom_type_open);
-
-	ClassDB::bind_method("get_drag_data_fw", &EditorCustomTypeSettings::get_drag_data_fw);
-	ClassDB::bind_method("can_drop_data_fw", &EditorCustomTypeSettings::can_drop_data_fw);
-	ClassDB::bind_method("drop_data_fw", &EditorCustomTypeSettings::drop_data_fw);
 
 	ClassDB::bind_method("update_custom_types", &EditorCustomTypeSettings::update_custom_types);
 	ClassDB::bind_method("custom_type_add", &EditorCustomTypeSettings::custom_type_add);

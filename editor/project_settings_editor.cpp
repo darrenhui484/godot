@@ -804,7 +804,7 @@ void ProjectSettingsEditor::popup_project_settings() {
 	_update_translations();
 	autoload_settings->update_autoload();
 	plugin_settings->update_plugins();
-	scene_template_settings->update_scene_templates();
+	custom_type_settings->update_custom_types();
 }
 
 void ProjectSettingsEditor::update_plugins() {
@@ -2025,10 +2025,10 @@ ProjectSettingsEditor::ProjectSettingsEditor(EditorData *p_data) {
 	plugin_settings->set_name(TTR("Plugins"));
 	tab_container->add_child(plugin_settings);
 
-	scene_template_settings = memnew(EditorSceneTemplateSettings);
-	scene_template_settings->set_name(TTR("SceneTemplates"));
-	tab_container->add_child(scene_template_settings);
-	scene_template_settings->connect("scene_template_changed", this, "_settings_changed");
+	custom_type_settings = memnew(EditorCustomTypeSettings);
+	custom_type_settings->set_name(TTR("CustomTypes"));
+	tab_container->add_child(custom_type_settings);
+	custom_type_settings->connect("custom_type_changed", this, "_settings_changed");
 
 	timer = memnew(Timer);
 	timer->set_wait_time(1.5);

@@ -43,7 +43,7 @@ StringName ClassType::_get_name_by_path(const String &p_path, Source *r_source) 
 	if (Engine::get_singleton()->is_editor_hint()) {
 		StringName name = EditorNode::get_editor_data().script_class_get_name(p_path);
 		if (r_source && name != StringName())
-			*r_source = SOURCE_SCRIPT;
+			*r_source = SOURCE_SCRIPT_CLASS;
 		return name;
 	}
 #else
