@@ -3706,10 +3706,11 @@ Ref<Texture> EditorNode::get_class_icon(const String &p_class, const String &p_f
 		}
 
 		if (icon.is_null()) {
-			icon = gui_base->get_icon(ScriptServer::get_global_class_base(p_class), "EditorIcons");
+			String native = ScriptServer::get_global_class_native_base(p_class);
+			if (gui_base->has_icon(native, "EditorIcons")) {
+				return gui_base->get_icon(native, "EditorIcons");
+			}
 		}
-
-		return icon;
 	}
 
 	const Map<String, Vector<EditorData::CustomType> > &p_map = EditorNode::get_editor_data().get_custom_types();
@@ -3724,8 +3725,10 @@ Ref<Texture> EditorNode::get_class_icon(const String &p_class, const String &p_f
 		}
 	}
 
-	if (p_fallback.length() && gui_base->has_icon(p_fallback, "EditorIcons"))
+	if (p_fallback.length()) {
+		ERR_FAIL_COND_V(!gui_base->has_icon(p_fallback, "EditorIcons"), NULL);
 		return gui_base->get_icon(p_fallback, "EditorIcons");
+	}
 
 	return NULL;
 }
