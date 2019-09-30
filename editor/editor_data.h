@@ -142,6 +142,12 @@ private:
 	HashMap<StringName, String> _script_class_icon_paths;
 	HashMap<String, StringName> _script_class_file_to_path;
 
+	Map<StringName, Vector<StringName> > inheritance_caches; // for user-instantiable types
+	Set<StringName> type_blacklist;
+	bool updating_inheritance_caches;
+	bool inheritance_caches_dirty;
+	bool _is_class_disabled_by_feature_profile(const StringName &p_class);
+
 public:
 	EditorPlugin *get_editor(Object *p_object);
 	EditorPlugin *get_subeditor(Object *p_object);
@@ -203,10 +209,13 @@ public:
 	void notify_resource_saved(const Ref<Resource> &p_resource);
 
 	bool script_class_is_parent(const String &p_class, const String &p_inherits);
-	StringName script_class_get_base(const String &p_class) const;
 	Object *script_class_instance(const String &p_class) const;
 	const Ref<Script> &script_class_get_most_recent_script_class(const Ref<Script> &p_script) const;
 	const StringName &script_class_get_type(const Object *p_object) const;
+
+	void add_inheritance_cache(const StringName &p_base_type);
+	void update_inheritance_caches(const StringName &p_base_type = StringName());
+	const Vector<StringName> &get_inheritance_cache(const StringName &p_class) const;
 
 	EditorData();
 };

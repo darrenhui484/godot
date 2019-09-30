@@ -55,8 +55,7 @@ class CreateDialog : public ConfirmationDialog {
 	String base_type;
 	String preferred_search_result_type;
 	EditorHelpBit *help_bit;
-	List<StringName> type_list;
-	Set<StringName> type_blacklist;
+	//Set<StringName> type_blacklist;
 
 	void _item_selected();
 
@@ -87,7 +86,7 @@ class CreateDialog : public ConfirmationDialog {
 	void drop_data_fw(const Point2 &p_point, const Variant &p_data, Control *p_from);
 
 	bool _is_class_disabled_by_feature_profile(const StringName &p_class);
-	bool _is_type_prefered(const String &type);
+	bool _is_type_preferred(const String &type);
 
 protected:
 	void _notification(int p_what);
@@ -106,6 +105,8 @@ public:
 	String get_preferred_search_result_type();
 
 	void popup_create(bool p_dont_clear, bool p_replace_mode = false, const String &p_select_type = "Node");
+
+	void update_type_list();
 
 	CreateDialog();
 };

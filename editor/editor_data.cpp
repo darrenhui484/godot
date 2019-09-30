@@ -817,7 +817,7 @@ void EditorData::get_plugin_window_layout(Ref<ConfigFile> p_layout) {
 bool EditorData::script_class_is_parent(const String &p_class, const String &p_inherits) {
 	if (!ScriptServer::is_global_class(p_class))
 		return false;
-	String base = script_class_get_base(p_class);
+	String base = ScriptServer::get_global_class_base(p_class);
 	Ref<Script> script = ResourceLoader::load(ScriptServer::get_global_class_path(p_class), "Script");
 	Ref<Script> base_script = script->get_base_script();
 
@@ -825,7 +825,7 @@ bool EditorData::script_class_is_parent(const String &p_class, const String &p_i
 		if (ClassDB::class_exists(base)) {
 			return ClassDB::is_parent_class(base, p_inherits);
 		} else if (ScriptServer::is_global_class(base)) {
-			base = script_class_get_base(base);
+			base = ScriptServer::get_global_class_base(base);
 		} else if (base_script.is_valid()) {
 			return ClassDB::is_parent_class(base_script->get_instance_base_type(), p_inherits);
 		} else {
@@ -833,25 +833,6 @@ bool EditorData::script_class_is_parent(const String &p_class, const String &p_i
 		}
 	}
 	return true;
-}
-
-StringName EditorData::script_class_get_base(const String &p_class) const {
-
-	if (!ScriptServer::is_global_class(p_class))
-		return StringName();
-
-	String path = ScriptServer::get_global_class_path(p_class);
-
-	Ref<Script> script = ResourceLoader::load(path, "Script");
-	if (script.is_null())
-		return StringName();
-
-	Ref<Script> base_script = script->get_base_script();
-	if (base_script.is_null()) {
-		return ScriptServer::get_global_class_base(p_class);
-	}
-
-	return script->get_language()->get_global_class_name(base_script->get_path());
 }
 
 Object *EditorData::script_class_instance(const String &p_class) const {
@@ -895,9 +876,112 @@ const StringName &EditorData::script_class_get_type(const Object *p_object) cons
 	return type;
 }
 
+void EditorData::add_inheritance_cache(const StringName &p_base_type) {
+	if (!inheritance_caches.has(p_base_type))
+		inheritance_caches[p_base_type] = Vector<StringName>();
+	update_inheritance_caches(p_base_type);
+}
+
+void EditorData::update_inheritance_caches(const StringName &p_base_type) {
+	if (!inheritance_caches_dirty)
+		return;
+	if (p_base_type == StringName()) {
+		for (Map<StringName, Vector<StringName> >::Element *E = inheritance_caches.front(); E; E = E->next()) {
+			update_inheritance_caches(E->key());
+		}
+		return;
+	}
+	ERR_FAIL_COND(!inheritance_caches.has(p_base_type));
+	updating_inheritance_caches = true;
+	List<StringName> list;
+	ClassDB::get_class_list(&list);
+	ScriptServer::get_global_class_list(&list);
+	list.sort_custom<StringName::AlphCompare>();
+
+	Vector<StringName> &vec = inheritance_caches[p_base_type];
+	vec.clear();
+	for (List<StringName>::Element *E = list.front(); E;) {
+
+		String type = E->get();
+		bool cpp_type = ClassDB::class_exists(type);
+		String native = ScriptServer::is_global_class(type) ? ScriptServer::get_global_class_native_base(type) : type;
+
+		if (_is_class_disabled_by_feature_profile(type)) {
+			continue;
+		}
+
+		if (ClassDB::is_parent_class(native, "Node") && type.begins_with("Editor")) {
+			continue; // do not show editor nodes
+		}
+
+		if (type_blacklist.has(type)) {
+			continue;
+		}
+
+		if (cpp_type && !ClassDB::can_instance(native)) {
+			continue; // can't create what can't be instantiated
+		}
+
+		if (cpp_type) {
+			bool skip = false;
+
+			for (Set<StringName>::Element *E = type_blacklist.front(); E && !skip; E = E->next()) {
+				if (ClassDB::is_parent_class(type, E->get()))
+					skip = true;
+			}
+
+			if (skip)
+				continue;
+		}
+
+		if (type == p_base_type)
+			continue;
+
+		if (cpp_type) {
+			if (!ClassDB::is_parent_class(type, p_base_type))
+				continue;
+		} else if (!ScriptServer::is_global_class(type) || !EditorNode::get_editor_data().script_class_is_parent(type, p_base_type)) {
+			continue;
+		}
+
+		vec.push_back(type);
+	}
+	list.clear();
+	updating_inheritance_caches = false;
+}
+
+bool EditorData::_is_class_disabled_by_feature_profile(const StringName &p_class) {
+
+	Ref<EditorFeatureProfile> profile = EditorFeatureProfileManager::get_singleton()->get_current_profile();
+	if (profile.is_null()) {
+		return false;
+	}
+
+	StringName class_name = p_class;
+
+	while (class_name != StringName()) {
+
+		if (profile->is_class_disabled(class_name)) {
+			return true;
+		}
+		class_name = ClassDB::get_parent_class_nocheck(class_name);
+	}
+
+	return false;
+}
+
+const Vector<StringName> &EditorData::get_inheritance_cache(const StringName &p_class) const {
+	ERR_FAIL_COND_V(!inheritance_caches.has(p_class), Vector<StringName>());
+	return inheritance_caches[p_class];
+}
+
 EditorData::EditorData() {
 
 	current_edited_scene = -1;
+	updating_inheritance_caches = false;
+	inheritance_caches_dirty = true;
+	type_blacklist.insert("PluginScript"); // PluginScript must be initialized before use. Not possible in Control lists.
+	type_blacklist.insert("ScriptCreateDialog"); // This is an exposed editor Node that doesn't have an Editor prefix.
 }
 
 ///////////
