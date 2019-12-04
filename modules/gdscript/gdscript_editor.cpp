@@ -178,7 +178,7 @@ bool GDScriptLanguage::validate(const String &p_script, int &r_line_error, int &
 
 bool GDScriptLanguage::has_named_classes() const {
 
-	return false;
+	return true;
 }
 
 bool GDScriptLanguage::supports_builtin_mode() const {
