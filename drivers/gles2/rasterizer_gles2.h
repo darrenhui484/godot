@@ -38,14 +38,6 @@
 
 class RasterizerGLES2 : public Rasterizer {
 
-	static Rasterizer *_create_current();
-
-	RasterizerStorageGLES2 *storage;
-	RasterizerCanvasGLES2 *canvas;
-	RasterizerSceneGLES2 *scene;
-
-	double time_total;
-
 public:
 	virtual RasterizerStorage *get_storage();
 	virtual RasterizerCanvas *get_canvas();
